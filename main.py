@@ -40,7 +40,7 @@ log.setLevel(logging.DEBUG)
 
 
 class BaseCommands:
-    def __init__(self, endpoints, cnx_create=False, default='development',
+    def __init__(self, endpoints, create=False, default='development',
                  **kwargs):
         self.__cnx = {}
         self.__endpoint = None
@@ -48,7 +48,7 @@ class BaseCommands:
         self.__env = kwargs.pop('env', None)
         self.__options = kwargs
 
-        if cnx_create is True:
+        if create is True:
             for endpoint in self.__endpoints.keys():
                 self.get_cnx(endpoint)
 
