@@ -80,6 +80,14 @@ class BaseCommand:
         return self.get_cnx(self.endpoint)
 
     @property
+    def cd(self):
+        return self.env.cd
+
+    @property
+    def run(self):
+        return self.env.run
+
+    @property
     def endpoint(self):
         return self.__endpoint
 
@@ -140,14 +148,17 @@ class BaseCommand:
         doc = self.docstring(hdr)
 
         try:
-            hdr(docopt(doc, argv[1:]))
+            if 'help' in argv:
+                raise DocoptExit()
 
-        except SystemExit:
-            log.debug('parse (SystemExit)')
+            hdr(docopt(doc, argv[1:]))
 
         except DocoptExit as e:
             log.debug('parse (DocoptExit): %s', e)
             log.error(doc)
+
+        except SystemExit as e:
+            log.debug('parse (SystemExit)')
 
         except Exception as e:
             log.debug('parse (Exception): %s', e)
