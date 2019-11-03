@@ -198,7 +198,6 @@ class Commands(BaseCommand):
         """
         if self.get_yes(**options):
             log.error(options)
-            self.env
 
 
 def setup_logger(options):
