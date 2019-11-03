@@ -21,7 +21,7 @@ import logging
 from fabric import Connection
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.completion import WordCompleter, Completer, Completion
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.shortcuts import yes_no_dialog
@@ -239,6 +239,11 @@ def setup_logger(options):
     log.setLevel(logging.DEBUG)
 
 
+class CommandCompleter(Completer):
+    def get_completions(self, document, complete_event):
+        pass
+
+
 def main():
     # arguments
     doc = docstring(__doc__)
@@ -254,7 +259,7 @@ def main():
 
     # session
     session = PromptSession(
-        completer=WordCompleter([]),
+        completer=WordCompleter(['help', 'exit']),
         history=FileHistory(_his_file),
         auto_suggest=AutoSuggestFromHistory(),
         key_bindings=bindings)
