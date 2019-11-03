@@ -1,4 +1,21 @@
 #!/usr/bin/env python
+"""
+AySA Command Line Interface
+
+usage:
+    aysax [options] [development|quality]
+
+Argumentos Opcionales:
+    -h, --help                              Muestra la `ayuda` del programa.
+    -v, --version                           Muestra la `versión` del programa.
+    -D, --debug                             Activa el modo `debug`.
+    -V, --verbose                           Activa el modo `verbose`.
+    -O filename, --debug-output=filename    Archivo de salida para el modo `debug`.
+    -E filename, --env=filename             Archivo de configuración del entorno (`.ini`),
+                                            el mismo será buscado en la siguiente ruta
+                                            de no ser definido: `~/.aysa/config.ini`.
+"""
+
 import sys
 import logging
 from fabric import Connection
@@ -9,22 +26,32 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.shortcuts import yes_no_dialog
 from prompt_toolkit.styles import Style
+from shlex import split
 from docopt import docopt, DocoptExit
 from inspect import getdoc
+from pathlib import Path
 
-# settings
+bindings = KeyBindings()
+log = logging.getLogger(__name__)
+
+HOME = Path('~/.aysa').expanduser()
+
 _ssh_user = '0608156'
-_ssh_ppky = 'c:/users/i0608156/.aysa/I0000001_rsa'
+_ssh_ppky = HOME.joinpath('I0000001_rsa')
+_his_file = HOME.joinpath('history')
+
+QUALITY = 'quality'
+DEVELOPMENT = 'development'
 
 ENDPOINTS = {
-    'development': {
+    DEVELOPMENT: {
         'host': 'scosta01.aysa.ad',
         'user': _ssh_user,
         'connect_kwargs': {
             'key_filename': _ssh_ppky
         }
     },
-    'quality': {
+    QUALITY: {
         'host': 'scosta02.aysa.ad',
         'user': _ssh_user,
         'connect_kwargs': {
@@ -33,183 +60,220 @@ ENDPOINTS = {
     },
 }
 
-# objects
-bindings = KeyBindings()
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+
+def docstring(obj):
+    if not isinstance(obj, str):
+        obj = getdoc(obj)
+    return ' \n{}\n\n '.format(obj)
 
 
-class BaseCommands:
-    def __init__(self, endpoints, create=False, default='development',
-                 **kwargs):
+class BaseCommand:
+    def __init__(self, endpoints, default=DEVELOPMENT, **kwargs):
         self.__cnx = {}
         self.__endpoint = None
         self.__endpoints = endpoints
-        self.__env = kwargs.pop('env', None)
         self.__options = kwargs
-
-        if create is True:
-            for endpoint in self.__endpoints.keys():
-                self.get_cnx(endpoint)
-
-        self.set_env(default)
+        self.set_enpoint(default)
 
     @property
     def env(self):
-        return self.__env
+        return self.get_cnx(self.endpoint)
 
     @property
     def endpoint(self):
         return self.__endpoint
 
-    def set_env(self, value):
+    def set_enpoint(self, value):
         value = str(value).lower()
         if value not in self.__endpoints:
             raise KeyError('El endpoint "{}" no es válido.'.format(value))
-        self.__env = self.get_cnx(value)
         self.__endpoint = value
-        log.info('endpoint (set): "%s"', value)
+        log.debug('endpoint (set): "%s"', value)
 
     def get_cnx(self, endpoint):
         try:
             cnx = self.__cnx[endpoint]
-            log.info('endpoint (cache): "%s"', endpoint)
+            log.debug('endpoint (cache): "%s"', endpoint)
         except KeyError:
-            log.debug('endpoint (create): "%s"', endpoint)
             cnx = Connection(**self.__endpoints[endpoint])
             self.__cnx[endpoint] = cnx
+            log.debug('endpoint (create): "%s"', endpoint)
+        log.debug('endpoint (cnx): "%s"', cnx)
         return cnx
 
     def get_yes(self, title=None, text=None, **kwargs):
-        return kwargs.get('--yes', False) or \
-               yes_no_dialog(title=title or 'ATENCIÓN!',
+        log.debug('yes (dialog): "%s", kwargs: %s', text, kwargs)
+        return kwargs.get('--yes', False) \
+            or yes_no_dialog(title=title or 'ATENCIÓN!',
                              text=text or 'Desea continuar?')
 
-    def get_doc(self, obj=None):
-        return ' \n{}\n\n '.format(getdoc(obj or self))
-
-    def parse(self, line, *args, **kwargs):
-
-        if not line:
-            return
-
-        values = line.lower().split()
-
-        if 'help' in values:
-            return self.help()
-
-        if 'exit' in values:
-            self.exit()
-
-        cmd = values[0]
-        arg = values[1:]
-
-        log.debug('cmd (%s): %s', cmd, arg)
-
-        if not hasattr(self, cmd):
-            return self.help()
-
-        hdr = getattr(self, cmd)
-        doc = self.get_doc(hdr)
-
-        try:
-            opt = docopt(doc, arg, **kwargs)
-            hdr(opt, *args, **kwargs)
-        except DocoptExit:
-            log.error(doc)
+    def docstring(self, obj=None):
+        return docstring(obj or self)
 
     def help(self, *args, **kwargs):
-        print(self.get_doc())
+        log.error(self.docstring())
 
     def exit(self, code=0):
         sys.exit(code)
 
+    def parse(self, argv, *args, **kwargs):
+        argv = split(argv)
 
-class Commands(BaseCommands):
+        if not argv:
+            log.debug('parse (argv): no arguments')
+            return
+
+        cmd = argv[0].lower()
+        log.debug('parse (cmd): %s', cmd)
+
+        if not hasattr(self, cmd) or cmd == 'help':
+            log.debug('parse (%s): command not found or get help', cmd)
+            return self.help()
+
+        elif cmd == 'exit':
+            log.debug('parse (exit)')
+            self.exit()
+
+        hdr = getattr(self, cmd)
+        log.debug('parse (handler): %s', hdr)
+
+        doc = self.docstring(hdr)
+
+        try:
+            hdr(docopt(doc, argv[1:]))
+
+        except SystemExit:
+            log.debug('parse (SystemExit)')
+
+        except DocoptExit as e:
+            log.debug('parse (DocoptExit): %s', e)
+            log.error(doc)
+
+        except Exception as e:
+            log.debug('parse (Exception): %s', e)
+            log.error(e)
+
+
+class Commands(BaseCommand):
     """
     AySA Command Line Interface.
 
-    Usage: COMMAND [ARGS...]
+    Usage:
+        COMMAND [ARGS...]
 
-    Comandos Disponibles:
-        deploy     Inicia el proceso de despliegue.
-        down       Detiene y elimina todos servicios.
-        prune      Detiene y elimina todos servicios, omo así también
-                   las imágenes y volúmenes aosicados.
-        restart    Reinicia uno o más servicios.
-        services   Lista los servicios disponibles.
-        set        Estable el entorno a utilizar [default: development].
-        start      Inicia uno o más servicios.
-        stop       Detiene uno o más servicios.
-        up         Crea e inicia uno o más servicios.
+    Comandos:
+        deploy      Inicia el proceso de despliegue.
+        down        Detiene y elimina todos servicios.
+        prune       Detiene y elimina todos servicios, omo así también
+                    las imágenes y volúmenes aosicados.
+        restart     Reinicia uno o más servicios.
+        select      Selecciona el entorno de ejecución.
+        services    Lista los servicios disponibles.
+        set         Estable el entorno a utilizar [default: development].
+        start       Inicia uno o más servicios.
+        stop        Detiene uno o más servicios.
+        up          Crea e inicia uno o más servicios.
 
-    Comando Generales:
-        help       Muestra la ayuda del programa.
-        exit       Sale del programa.
+    Generales:
+        help        Muestra la ayuda del programa.
+        exit        Sale del programa. (Ctrl + D)
     """
+
+    def select(self, options, **kwargs):
+        """
+        Selecciona el entorno de ejecución.
+
+        usage: select ENDPOINT
+        """
+        self.set_enpoint(options['ENDPOINT'])
+
     def deploy(self, options, **kwargs):
         """
+        Inicia el proceso de despliegue.
+
         usage: deploy [options] [ARGS...]
 
         Argumentos Opcionales:
             -y, --yes    Responde "SI" a todas las preguntas.
         """
         if self.get_yes(**options):
-            log.info(options)
+            log.error(options)
+            self.env
 
-    def set(self, options, **kwargs):
-        """
-        usage: set ENVIRONMENT
-        """
-        self.set_env(options['ENVIRONMENT'])
+
+def setup_logger(options):
+    if options.get('--debug', False):
+        level = logging.DEBUG
+    elif options.get('--verbose', False):
+        level = logging.INFO
+    else:
+        level = logging.ERROR
+
+    debug_output = options.get('--debug-output', None)
+
+    if debug_output is not None:
+        file_formatter = logging.Formatter('%(asctime)s %(levelname)s '
+                                           '%(filename)s %(lineno)d '
+                                           '%(message)s')
+        file_handler = logging.FileHandler(debug_output, 'w')
+        file_handler.setFormatter(file_formatter)
+        file_handler.setLevel(logging.DEBUG)
+        log.addHandler(file_handler)
+        level = logging.ERROR
+
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(console_formatter)
+    console_handler.setLevel(level)
+    log.addHandler(console_handler)
+    log.setLevel(logging.DEBUG)
 
 
 def main():
-    # argmuents
-    argv = sys.argv[1:]
+    # arguments
+    doc = docstring(__doc__)
 
-    # logger
-    fmt = logging.Formatter('[%(levelname)s] %(message)s')
-    hdr = logging.StreamHandler()
-    hdr.setFormatter(fmt)
-    hdr.setLevel(logging.ERROR if '-D' not in argv else logging.DEBUG)
-    log.addHandler(hdr)
+    try:
+        opt = docopt(doc, version='v1.0.0.dev.0')
+    except DocoptExit:
+        raise SystemExit(doc)
+
+    setup_logger(opt)
+    log.debug('main (opt): %s', opt)
+    log.debug('main (logger): %s', log)
 
     # session
     session = PromptSession(
-        completer=WordCompleter([
-            'help',
-            'exit',
-            'deploy',
-            'set',
-            'development',
-            'quality'
-        ]),
-        history=FileHistory('c:/users/i0608156/.aysa/history'),
+        completer=WordCompleter([]),
+        history=FileHistory(_his_file),
         auto_suggest=AutoSuggestFromHistory(),
-        mouse_support=True,
-        key_bindings=bindings
-    )
-
-    # dispatcher
-    commands = Commands(ENDPOINTS)
+        key_bindings=bindings)
+    log.debug('main (session): %s', session)
 
     # styles
-    style = Style.from_dict({
-        '': '#FFFFFF',
-        'environ': '#006600'
-    })
+    style = Style.from_dict({'': '#FFFFFF', 'environ': '#006600'})
+    log.debug('main (style): %s', style)
 
+    # dispatcher
+    default = QUALITY if opt.get(QUALITY, False) else DEVELOPMENT
+    commands = Commands(ENDPOINTS, default)
+    log.debug('main (commands): %s', commands)
+
+    # loop
     while 1:
         try:
-            ps1 = [
+            text = session.prompt([
                 ('class:environ', '({}) '.format(commands.endpoint)),
                 ('class:', '> ')
-            ]
-            commands.parse(session.prompt(ps1, style=style))
+            ], style=style)
+            commands.parse(text)
+
         except KeyboardInterrupt:
+            log.debug('main (KeyboardInterrupt)')
             continue
+
         except EOFError:
+            log.debug('main (EOFError): ctrl + D')
             break
 
 

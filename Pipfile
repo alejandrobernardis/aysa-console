@@ -10,6 +10,7 @@ prompt_toolkit = "*"
 ptpython = "*"
 pypager = "*"
 asyncssh = "*"
+fabric = "*"
 
 [requires]
 python_version = "3.6"
