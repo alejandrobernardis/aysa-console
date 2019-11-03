@@ -180,7 +180,6 @@ class Commands(BaseCommand):
         restart     Reinicia uno o más servicios.
         select      Selecciona el entorno de ejecución.
         services    Lista los servicios disponibles.
-        set         Estable el entorno a utilizar [default: development].
         start       Inicia uno o más servicios.
         stop        Detiene uno o más servicios.
         up          Crea e inicia uno o más servicios.
@@ -211,6 +210,44 @@ class Commands(BaseCommand):
             log.error(options)
 
 
+class CommandCompleter(Completer):
+    def __init__(self):
+        self.commands = {
+            'help': None,
+            'exit': None,
+            'deploy': ['-y/--yes', '-u/--update'],
+            'down': ['-y/--yes'],
+            'prune': None,
+            'restart': ['-y/--yes'],
+            'select': ['development', 'quality'],
+            'services': ['development', 'quality'],
+            'start': ['-y/--yes'],
+            'stop': ['-y/--yes'],
+            'up': ['-y/--yes', '-u/--update'],
+            'config': None,
+            'registry': {
+                'ls': ['-m/--manifest', '-d/--data', '-t/--tags-filter'],
+                'make': ['quality', 'production']
+            }
+        }
+
+    def is_command(self):
+        pass
+
+    def is_argument(self):
+        pass
+
+    def get_completions(self, document, complete_event):
+        word_before_cursor = document.text_before_cursor
+
+        def matcher(value):
+            return str(value).lower().startswith(word_before_cursor)
+
+        for x in self.commands.keys():
+            if matcher(x):
+                yield Completion(x, -len(word_before_cursor))
+
+
 def setup_logger(options):
     if options.get('--debug', False):
         level = logging.DEBUG
@@ -239,11 +276,6 @@ def setup_logger(options):
     log.setLevel(logging.DEBUG)
 
 
-class CommandCompleter(Completer):
-    def get_completions(self, document, complete_event):
-        pass
-
-
 def main():
     # arguments
     doc = docstring(__doc__)
@@ -259,7 +291,7 @@ def main():
 
     # session
     session = PromptSession(
-        completer=WordCompleter(['help', 'exit']),
+        completer=CommandCompleter(),  # CommandCompleter(['help', 'exit']),
         history=FileHistory(_his_file),
         auto_suggest=AutoSuggestFromHistory(),
         key_bindings=bindings)
