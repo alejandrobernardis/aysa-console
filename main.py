@@ -36,7 +36,8 @@ from pathlib import Path
 from registry import Image, Api
 
 bindings = KeyBindings()
-log = logging.getLogger(__name__)
+log = logging.getLogger()
+
 rx_login = re.compile(r'Login\sSucceeded$', re.I)
 rx_service = re.compile(r'^[a-z](?:[\w_])+$', re.I)
 rx_image = re.compile(r'^[a-z](?:[\w_])+_\d{1,3}\s{2,}[a-z0-9](?:[\w.-]+)'
@@ -199,9 +200,9 @@ class BaseCommand:
             log.error(doc)
         except SystemExit as e:
             log.debug('parse (SystemExit)')
-        # except Exception as e:
-        #     log.debug('parse (Exception): %s', e)
-        #     log.error(e)
+        except Exception as e:
+            log.debug('parse (Exception): %s', e)
+            log.error(e)
 
     def _list(self, cmd, filter_line=None, obj=None):
         response = self.run(cmd, hide=True)
@@ -290,7 +291,7 @@ class Commands(BaseCommand):
         if self.get_yes(**options):
             with self.cwd:
                 self._raise_for_login()
-                log.debug('%s (options): %s', options)
+                log.debug('%s (options): %s', state, options)
                 services = self._services(options)
                 self.run('docker-compose {} {}'
                          .format(state, ' '.join(services)))
@@ -473,17 +474,17 @@ class CommandCompleter(Completer):
             'exit': None,
 
             # deployment
-            'deploy': ['--update', '--yes'],
-            'down': ['--yes'],
-            'images': None,
-            'make': ['--yes'],
-            'prune': ['--yes'],
-            'restart': ['--yes'],
-            'select': ['development', 'quality'],
-            'services': None,
-            'start': ['--yes'],
-            'stop': ['--yes'],
-            'up': ['--yes']
+            'deploy': ['--help', '--update', '--yes'],
+            'down': ['--help', '--yes'],
+            'images': ['--help'],
+            'make': ['--help', '--yes'],
+            'prune': ['--help', '--yes'],
+            'restart': ['--help', '--yes'],
+            'select': ['--help', 'development', 'quality'],
+            'services': ['--help'],
+            'start': ['--help', '--yes'],
+            'stop': ['--help', '--yes'],
+            'up': ['--help', '--yes']
         }
 
     def get_completions(self, document, complete_event):
