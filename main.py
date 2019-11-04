@@ -215,37 +215,49 @@ class CommandCompleter(Completer):
         self.commands = {
             'help': None,
             'exit': None,
-            'deploy': ['-y/--yes', '-u/--update'],
-            'down': ['-y/--yes'],
+            'deploy': ['--yes', '--update'],
+            'down': ['--yes'],
             'prune': None,
-            'restart': ['-y/--yes'],
+            'restart': ['--yes'],
             'select': ['development', 'quality'],
             'services': ['development', 'quality'],
-            'start': ['-y/--yes'],
-            'stop': ['-y/--yes'],
-            'up': ['-y/--yes', '-u/--update'],
+            'start': ['--yes'],
+            'stop': ['--yes'],
+            'up': ['--yes', '--update'],
             'config': None,
             'registry': {
-                'ls': ['-m/--manifest', '-d/--data', '-t/--tags-filter'],
+                'ls': ['--manifest', '--data', '--tags-filter'],
                 'make': ['quality', 'production']
             }
         }
 
-    def is_command(self):
-        pass
-
-    def is_argument(self):
-        pass
-
     def get_completions(self, document, complete_event):
-        word_before_cursor = document.text_before_cursor
+        def matcher(xx, yy):
+            return str(xx).lower().startswith(yy)
 
-        def matcher(value):
-            return str(value).lower().startswith(word_before_cursor)
+        word = document.get_word_before_cursor()
+        line = document.text_before_cursor
+        complete_list = self.commands
 
-        for x in self.commands.keys():
-            if matcher(x):
-                yield Completion(x, -len(word_before_cursor))
+        try:
+            log.debug('1: %s', document.text_before_cursor)
+            log.debug('2: %s', document.get_word_before_cursor())
+        except:
+            pass
+
+        # if not line or line.count(' ') == 0:
+        #     complete_list = self.commands
+        # else:
+        #     key = split(line)[0]
+        #     value = self.commands.get(key, None)
+        #     if value is not None:
+        #         complete_list = value
+        #     else:
+        #         complete_list = []
+
+        for x in complete_list:
+            if matcher(x, word):
+                yield Completion(x, -len(word))
 
 
 def setup_logger(options):
