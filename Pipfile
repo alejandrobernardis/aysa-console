@@ -9,9 +9,10 @@ verify_ssl = false
 prompt_toolkit = "*"
 ptpython = "*"
 pypager = "*"
-asyncssh = "*"
 fabric = "*"
 requests = "*"
+tomlkit = "*"
+jsane = "*"
 
 [requires]
 python_version = "3.6"

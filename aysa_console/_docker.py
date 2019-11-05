@@ -1,14 +1,9 @@
-# Author: Alejandro M. BERNARDIS
-# Email alejandro.bernardis at gmail.com
-# Created: 2019/11/03 01:09
+# Author: Alejandro M. Bernardis
+# Email: alejandro.bernardis at gmail.com
+# Created: 2019/10/30
+# ~
 
-###############################################################################
-# Docker Registry Documentation: https://docs.docker.com/registry/            #
-###############################################################################
-# TODO (0608156): implementar autenticación por token.
-#                 https://docs.docker.com/registry/configuration/#auth
-# TODO (0608156): implementar un paginador para el catálogo y tags dentro de
-#                 la api
+# Docker Registry Documentation: https://docs.docker.com/registry
 
 import re
 import json
@@ -98,26 +93,26 @@ def scheme(endpoint):
 
 class Registry:
     """Registry Client (simple)"""
-    def __init__(self, host, insecure=False, verify=True, credentials=None,
-                 **kwargs):
+    def __init__(self, host, insecure=False, verify=True, username=None,
+                 password=None, **kwargs):
         self.host = host
         self.insecure = insecure
         self.verify = verify if insecure is False else True
         self.scheme = scheme(host) if insecure is False else 'http'
-        self.credentials = credentials
+        self.username = username
+        self.password = password
 
     def get_baseurl(self):
         return '{}://{}/v2'.format(self.scheme, self.host)
 
-    def get_credentials(self, split=False):
-        if split is True:
-            return self.credentials.split(':')
-        return self.credentials
+    @property
+    def credentials(self):
+        return all([self.username, self.password])
 
     def session(self, headers=None, timeout=10):
         s = requests.Session()
         if self.credentials is not None:
-            s.auth = HTTPBasicAuth(*self.get_credentials(True))
+            s.auth = HTTPBasicAuth(self.username, self.password)
         s.headers.update(headers or {})
         s.headers['User-Agent'] = 'AySA-Command-Line-Tool'
         s.verify = self.verify
@@ -232,9 +227,10 @@ class FatManifest(SlimManifest):
 
 
 class Api:
-    def __init__(self, host, insecure=False, verify=True, credentials=None,
-                 **kwargs):
-        self.registry = Registry(host, insecure, verify, credentials)
+    def __init__(self, host, insecure=False, verify=True, username=None,
+                 password=None, **kwargs):
+        self.registry = Registry(host, insecure, verify, username, password,
+                                 **kwargs)
 
     def catalog(self, prefix_filter=None):
         return Catalog(self.registry, prefix_filter)
