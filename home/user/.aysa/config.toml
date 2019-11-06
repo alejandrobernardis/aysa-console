@@ -7,21 +7,21 @@ password = "******"
 namespace = "dash"
 
 [endpoints]
-    [endpoints.development]
-    host = "scosta01.aysa.ad"
-    port = 22
-    username = "0x00"
-    private_key = "~/.aysa/0x00_rsa.ppk"
-    remote_path = "/data/deploy/dashbaord"
-    tag = "dev"
+[endpoints.development]
+host = "scosta01.aysa.ad"
+port = 22
+username = "0x00"
+private_key = "~/.aysa/0x00_rsa.ppk"
+remote_path = "/data/deploy/dashbaord"
+tag = "dev"
 
-    [endpoints.quality]
-    host = "scosta02.aysa.ad"
-    port = 22
-    username = "0x00"
-    private_key = "~/.aysa/0x00_rsa.ppk"
-    remote_path = "/data/deploy/dashbaord"
-    tag = "rc"
+[endpoints.quality]
+host = "scosta02.aysa.ad"
+port = 22
+username = "0x00"
+private_key = "~/.aysa/0x00_rsa.ppk"
+remote_path = "/data/deploy/dashbaord"
+tag = "rc"
 
 [manifest]
 create = 2019-11-05

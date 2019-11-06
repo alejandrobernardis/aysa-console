@@ -3,19 +3,48 @@
 # Created: 2019/11/05 07:22
 
 import sys
-from aysa_console._common import docstring
+import shlex
+import logging
+from docopt import DocoptExit
+from aysa_console._common import docstring, docoptions, CommandExit, \
+    NoSuchCommandError, CommandError, Printer
 from aysa_console._docker import Api
 from aysa_console.completer import DEVELOPMENT
+from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
+from prompt_toolkit.styles import Style
 from fabric import Connection
+log = logging.getLogger(__name__)
 
 
 class BaseCommand:
-    def __init__(self, environment, default=DEVELOPMENT):
+    def __init__(self, session, environment, default=DEVELOPMENT,
+                 printer=None, options=None, **kwargs):
+        # env
         self.__cnx = {}
         self.__api = None
         self.__endpoint = None
+        self.__session_style = kwargs.pop('style', None)
+
+        if options is not None:
+            self.set_logger(options)
+
+        # settings
+        self.__session = session
         self.__environment = environment
+        self.__printer = printer or Printer()
         self.set_endpoint(default)
+
+    @property
+    def session(self):
+        return self.__session
+
+    @property
+    def session_style(self):
+        if self.__session_style is None:
+            self.__session_style = Style.from_dict({
+                '': '#ffffff', 'env': '#00ff00 bold'
+            })
+        return self.__session_style
 
     @property
     def environment(self):
@@ -35,11 +64,16 @@ class BaseCommand:
 
     @property
     def cwd(self):
-        return self.cnx.cd(self.env.remote_path)
+        value = '' if self.env.username == '0x00' else self.env.remote_path
+        return self.cnx.cd(value)
 
     @property
     def run(self):
         return self.cnx.run
+
+    @property
+    def out(self):
+        return self.__printer
 
     def get_docstring(self, value=None):
         return docstring(value or self)
@@ -50,11 +84,38 @@ class BaseCommand:
             raise KeyError('El endpoint "{}" no es válido.'.format(value))
         self.__endpoint = value
 
+    def set_logger(self, options):
+        if options.get('--debug', False):
+            level = logging.DEBUG
+        elif options.get('--verbose', False):
+            level = logging.INFO
+        else:
+            level = logging.ERROR
+        debug_output = options.get('--debug-output', None)
+        if debug_output is not None:
+            file_formatter = logging.Formatter('%(asctime)s %(levelname)s '
+                                               '%(filename)s %(lineno)d '
+                                               '%(message)s')
+            file_handler = logging.FileHandler(debug_output, 'w')
+            file_handler.setFormatter(file_formatter)
+            file_handler.setLevel(logging.DEBUG)
+            log.addHandler(file_handler)
+            level = logging.ERROR
+        console_formatter = logging.Formatter('%(message)s')
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler.setFormatter(console_formatter)
+        console_handler.setLevel(level)
+        log.addHandler(console_handler)
+        log.setLevel(logging.DEBUG)
+
     def get_cnx(self, endpoint):
         try:
             cnx = self.__cnx[endpoint]
         except KeyError:
-            cnx = Connection(**self.endpoints[endpoint])
+            env = self.endpoints[endpoint]
+            if str(env.username).lower() == 'root':
+                raise SystemExit('No se permite el uso del usaurio "ROOT."')
+            cnx = Connection(**env)
             self.__cnx[endpoint] = cnx
         return cnx
 
@@ -68,8 +129,53 @@ class BaseCommand:
             self.__api = Api(**self.environment.registry)
         return self.__api
 
-    def parse(self, argv=None, *args, **kwargs):
-        pass
+    def yes_dialog(self, title=None, text=None, **kwargs):
+        return kwargs.get('--yes', False) \
+            or yes_no_dialog(title or 'ATENCIÓN',
+                             text or 'Desea continuar?')
+
+    def confirm_dialog(self, text, value, title=None, **kwargs):
+        if kwargs.get('--yes', False) is False:
+            answer = input_dialog(title or '[PRECAUCIÓN]', text)
+            return str(answer).strip().lower() == value
+        return True
+
+    def prompt(self, **kwargs):
+        text = self.session.prompt([
+            ('class:env', '({})'.format(self.endpoint)),
+            ('class:', ' > ')
+        ], style=self.session_style, **kwargs)
+        self.parse(text, **kwargs)
+
+    def parse(self, argv, *args, **kwargs):
+        argv = shlex.split(argv or '')
+
+        if not argv:
+            return
+
+        cmd = argv[0].lower()
+
+        if not hasattr(self, cmd):
+            cmd = 'help'
+
+        for x in ('help', 'exit'):
+            if x == cmd:
+                return getattr(self, cmd)()
+
+        hdr = getattr(self, cmd)
+        doc = self.get_docstring(hdr)
+
+        try:
+            if 'help' in argv[1:]:
+                raise CommandExit(None)
+            opt, _ = docoptions(doc, argv[1:])
+            return hdr(opt, **kwargs)
+        except (DocoptExit, CommandExit, NoSuchCommandError):
+            self.out(doc)
+        except SystemExit:
+            pass
+        except Exception as e:
+            self.out(e)
 
 
 class Commands(BaseCommand):
@@ -117,7 +223,13 @@ class Commands(BaseCommand):
         pass
 
     def select(self, options, **kwargs):
-        pass
+        """
+        Selecciona el entorno de ejecución.
+
+        usage:
+            select ENDPOINT
+        """
+        self.set_endpoint(options['ENDPOINT'])
 
     # Despliegue
 

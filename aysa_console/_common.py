@@ -4,9 +4,10 @@
 
 import sys
 import json
+import docopt
 from inspect import getdoc
 from functools import partialmethod
-from docopt import docopt, DocoptExit
+from docopt import DocoptExit
 from pathlib import Path
 from tomlkit import api
 from prompt_toolkit.output import get_default_output
@@ -34,7 +35,7 @@ class EnvFile:
     def load(self, filename=None):
         if filename is not None:
             self.set_filename(filename)
-        with self.filename.open('r', encoding='uft-8') as f:
+        with self.filename.open('r') as f:
             self.__document = api.parse(f.read())
         return self
 
@@ -102,7 +103,7 @@ def is_yes(value):
     return str(value).lower() in ('true', 'yes', 'si', 'y', 's', '1')
 
 
-def docstring(obj, tmpl=' \n{}\n\n'):
+def docstring(obj, tmpl=' \n{}\n \n'):
     if not isinstance(obj, str):
         obj = getdoc(obj)
     if tmpl is not None:
@@ -110,19 +111,26 @@ def docstring(obj, tmpl=' \n{}\n\n'):
     return obj
 
 
+def _extras(help, version, options, doc):
+    if help and any((o.name in ('-h', '--help')) and o.value
+                    for o in options):
+        raise CommandExit(doc)
+
+
 def docoptions(obj, *args, **kwargs):
     obj = docstring(obj)
     try:
-        return docopt(obj, *args, **kwargs), obj
+        docopt.extras = _extras
+        return docopt.docopt(obj, *args, **kwargs), obj
     except DocoptExit:
-        raise CommandError(obj)
+        raise CommandExit(obj)
 
 
 class Printer:
     def __init__(self, output=None):
         if output is None:
             try:
-                output = get_default_output()
+                output = sys.stdout # get_default_output()
             except:
                 output = sys.stdout
         if not all([hasattr(output, 'write'), hasattr(output, 'flush')]):
@@ -184,17 +192,21 @@ class Printer:
     question = partialmethod(write, subffix='?')
     bullet = partialmethod(write, prefix='> ')
 
-
-class CommandError(Exception):
-    def __init__(self, command, message):
-        self.command = command
-        super().__init__("%s: %s" % (command, message))
+    def __call__(self, *args, **kwargs):
+        self.write(*args, **kwargs)
 
 
 class NoSuchCommandError(Exception):
-    pass
+    def __init__(self, command):
+        super().__init__('Command not found: %s' % command)
 
 
-class CommandExit(DocoptExit):
-    def __init__(self, docstring):
-        super().__init__(docstring)
+class CommandError(Exception):
+    def __init__(self, message, command=None):
+        super().__init__(message)
+        self.command = command
+
+
+class CommandExit(SystemExit):
+    def __init__(self, command):
+        super().__init__(command)
