@@ -149,8 +149,8 @@ class BaseCommand:
     def confirm_dialog(self, text, value, title=None, **kwargs):
         if kwargs.get('--yes', False) is False:
             answer = input_dialog(title or '[PRECAUCIÓN]', text)
-            return str(answer).strip().lower() == value
-        return True
+            return str(answer).strip().lower() == value, answer
+        return True, None
 
     def prompt(self, **kwargs):
         text = self.session.prompt([
@@ -264,6 +264,7 @@ class Commands(BaseCommand):
         prune       Detiene y elimina todos los servicios,
                     como así también las imágenes y volúmenes
                     aosicados.
+        ps          Muestra los servicios desplegados.
         restart     Reinicia uno o más servicios.
         services    Lista los servicios disponibles.
         start       Inicia uno o más servicios.
@@ -341,7 +342,7 @@ class Commands(BaseCommand):
         """
         Crea las imágenes en la registry.
 
-        usage:
+        Usage:
             make [options] [IMAGE...]
 
         Opciones:
@@ -355,7 +356,40 @@ class Commands(BaseCommand):
         self.out.footer(total)
 
     def prune(self, options, **kwargs):
-        pass
+        """
+        Detiene y elimina todos los servicios, como así también
+        las imágenes y volúmenes aosicados.
+
+        Usage:
+            prune [options]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        message = 'Se procederá a "PURGAR" el entorno de "{0}", el ' \
+                  'siguiente proceso es "IRRÉVERSIBLE". Desdea continuar?\n' \
+                  'Por favor, escriba el nombre del entorno <{0}> para ' \
+                  'continuar:'.format(self.endpoint)
+        result, answer = self.confirm_dialog(message, self.endpoint)
+        if result is False and answer is not None:
+            message = 'El nombre de entorno "{}" no concuerda con "{}"' \
+                      .format(answer, self.endpoint)
+            raise ValueError(message)
+        elif answer is None:
+            return
+        with self.cwd:
+            self.run('docker-compose down -v --rmi all --remove-orphans')
+            self.run('docker volume prune -f')
+
+    def ps(self, options, **kwargs):
+        """
+        Muestra los servicios desplegados.
+
+        Usage:
+            ps
+        """
+        with self.cwd:
+            self.run('docker-compose ps')
 
     def restart(self, options, **kwargs):
         """
