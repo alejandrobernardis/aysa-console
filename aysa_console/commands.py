@@ -6,9 +6,11 @@ import re
 import sys
 import shlex
 import logging
+from pathlib import Path
 from docopt import DocoptExit
+from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
-    NoSuchCommandError, CommandError, Printer
+    NoSuchCommandError, CommandError, Printer, Counter
 from aysa_console._docker import Api
 from aysa_console.completer import DEVELOPMENT
 from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
@@ -16,6 +18,7 @@ from prompt_toolkit.styles import Style
 from fabric import Connection
 
 log = logging.getLogger(__name__)
+total = Counter('Total')
 rx_login = re.compile(r'Login\sSucceeded$', re.I)
 rx_service = re.compile(r'^[a-z](?:[\w_])+$', re.I)
 rx_image = re.compile(r'^[a-z](?:[\w_])+_\d{1,3}\s{2,}[a-z0-9](?:[\w.-]+)'
@@ -55,7 +58,7 @@ class BaseCommand:
 
     @property
     def environment(self):
-        return self.__environment
+        return DottedDict(self.__environment)
 
     @property
     def endpoint(self):
@@ -63,15 +66,14 @@ class BaseCommand:
 
     @property
     def endpoints(self):
-        return self.environment.endpoints
+        return DottedDict(self.environment['endpoints'])
 
     @property
     def env(self):
-        return self.endpoints[self.endpoint]
+        return DottedDict(self.endpoints[self.endpoint])
 
     @property
     def cwd(self):
-        print(type(self.env))
         value = '' if self.env.username == '0x00' else self.env.remote_path
         return self.cnx.cd(value)
 
@@ -120,10 +122,12 @@ class BaseCommand:
         try:
             cnx = self.__cnx[endpoint]
         except KeyError:
-            env = self.endpoints[endpoint]
-            if str(env.username).lower() == 'root':
+            env = DottedDict(self.endpoints[endpoint])
+            if env.username.lower() == 'root':
                 raise SystemExit('No se permite el uso del usaurio "ROOT."')
-            cnx = Connection(**env)
+            ppk = Path(env.private_key).expanduser()
+            cnx = Connection(env.host, env.username, int(env.port),
+                             connect_kwargs={'key_filename': str(ppk)})
             self.__cnx[endpoint] = cnx
         return cnx
 
@@ -198,10 +202,46 @@ class BaseCommand:
                 continue
             yield x
 
+    def _norm_service(self, value, sep='_'):
+        return sep.join(value.split(sep)[1:-1])
+
     def _services(self, values):
         if isinstance(values, dict):
             values = values['SERVICE']
         return set([x for x in self._list_of_services(values)])
+
+    def _list_of_images(self, values=None, **kwargs):
+        for x in self._list("docker-compose images", rx_image):
+            container, image, tag = x.split()[:3]
+            if values and self._norm_service(container) not in values:
+                continue
+            yield '{}:{}'.format(image, tag)
+
+    def _images(self, values):
+        if isinstance(values, dict):
+            values = values['IMAGE']
+        return set([x for x in self._list_of_images(values)])
+
+    def _change_state(self, state, options, **kwargs):
+        if self.yes_dialog(**options):
+            with self.cwd:
+                services = ' '.join(self._services(options))
+                self.run('docker-compose {} {}'.format(state, services))
+
+    def _login(self):
+        try:
+            cmd = 'docker login -u {username} -p {password} {host}' \
+                  .format(**self.environment.registry)
+            res = self.run(cmd, hide=True).stdout
+            return rx_login.match(res) is not None
+        except Exception as e:
+            print(e)
+            return False
+
+    def _raise_for_login(self):
+        if not self._login():
+            raise ValueError('No se pudo establecer la sesión '
+                             'con la `registry`.')
 
 
 class Commands(BaseCommand):
@@ -212,11 +252,11 @@ class Commands(BaseCommand):
         COMMAND [ARGS...]
 
     Comandos de Entorno:
-        config      Muestra la configuración actual.
         select      Selecciona el entorno de ejecución
                     [default: development]
 
     Comandos de Despliegue:
+        config      Muestra la configuración del compose.
         deploy      Inicia el proceso de despliegue.
         down        Detiene y elimina todos servicios.
         images      Lista las imágenes disponibles.
@@ -245,9 +285,6 @@ class Commands(BaseCommand):
 
     # Entorno
 
-    def config(self, options, **kwargs):
-        pass
-
     def select(self, options, **kwargs):
         """
         Selecciona el entorno de ejecución.
@@ -259,23 +296,78 @@ class Commands(BaseCommand):
 
     # Despliegue
 
+    def config(self, options, **kwargs):
+        """
+        Muestra la configuración del compose.
+
+        usage:
+            config
+        """
+        with self.cwd:
+            self.run('docker-compose config --resolve-image-digests')
+
     def deploy(self, options, **kwargs):
         pass
 
     def down(self, options, **kwargs):
-        pass
+        """
+        Detiene y elimina todos servicios.
+
+        Usage:
+            down [options]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            with self.cwd:
+                self.run('docker-compose down -v --remove-orphans')
 
     def images(self, options, **kwargs):
-        pass
+        """
+        Lista las imágenes disponibles.
+
+        usage:
+            images
+        """
+        total.reset()
+        with self.cwd:
+            for x in self._list_of_images():
+                self.out.bullet(x)
+                total.increment()
+        self.out.footer(total)
 
     def make(self, options, **kwargs):
-        pass
+        """
+        Crea las imágenes en la registry.
+
+        usage:
+            make [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        total.reset()
+        if self.yes_dialog(**options):
+            for x in self.api.catalog():
+                self.out.bullet(x)
+                total.increment()
+        self.out.footer(total)
 
     def prune(self, options, **kwargs):
         pass
 
     def restart(self, options, **kwargs):
-        pass
+        """
+        Reinicia uno o más servicios.
+
+        usage:
+            restart [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        self._change_state('restart', options, **kwargs)
 
     def services(self, options, **kwargs):
         """
@@ -284,15 +376,50 @@ class Commands(BaseCommand):
         usage:
             services
         """
+        total.reset()
         with self.cwd:
             for x in self._list_of_services():
                 self.out.bullet(x)
+                total.increment()
+        self.out.footer(total)
 
     def start(self, options, **kwargs):
-        pass
+        """
+        Inicia uno o más servicios.
+
+        usage:
+            start [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        self._change_state('start', options, **kwargs)
 
     def stop(self, options, **kwargs):
-        pass
+        """
+        Detiene uno o más servicios.
+
+        usage:
+            stop [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        self._change_state('stop', options, **kwargs)
 
     def up(self, options, **kwargs):
-        pass
+        """
+        Crea e inicia uno o más servicios.
+
+        usage:
+            up [options] [SERVICE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            with self.cwd:
+                self._raise_for_login()
+                services = ' '.join(self._services(options))
+                self.run('docker-compose up -d --remove-orphans {}'
+                         .format(services))

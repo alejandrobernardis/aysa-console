@@ -11,6 +11,7 @@ from docopt import DocoptExit
 from pathlib import Path
 from tomlkit import api
 from tomlkit.container import Container
+from tomlkit.items import Table
 
 
 class DotDict(dict):
@@ -20,8 +21,7 @@ class DotDict(dict):
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
-        if isinstance(value, (dict, Container)):
-            print(item)
+        if isinstance(value, (dict, Container, Table)):
             return DotDict(**value)
         return value
 
@@ -206,3 +206,35 @@ class CommandError(Exception):
 class CommandExit(SystemExit):
     def __init__(self, command):
         super().__init__(command)
+
+
+class Counter:
+    _counter = None
+
+    def __init__(self, name, factor=1):
+        self.__name = name
+        self._factor = factor
+        self.reset()
+
+    @property
+    def name(self):
+        return self.__name
+
+    def increment(self):
+        self._counter += self._factor
+
+    def decrement(self):
+        self._counter -= self._factor
+
+    def reset(self):
+        self._counter = 0
+
+    @property
+    def total(self):
+        return self._counter
+
+    def __str__(self):
+        return '{}: {}'.format(self.__name, self.total)
+
+    def __repr__(self):
+        return self.__str__()

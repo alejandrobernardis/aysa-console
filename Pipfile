@@ -14,6 +14,7 @@ requests = "*"
 tomlkit = "*"
 jsane = "*"
 docopt = "*"
+dotted = "*"
 
 [requires]
 python_version = "3.6"
