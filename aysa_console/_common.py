@@ -238,3 +238,36 @@ class Counter:
 
     def __repr__(self):
         return self.__str__()
+
+
+CONFIG_TMPL = """
+[registry]
+host = "10.17.65.128:5000"
+insecure = 1
+verify = 0
+username = ""
+password = ""
+namespace = ""
+
+[endpoints]
+[endpoints.development]
+host = "scosta01.aysa.ad"
+port = 22
+username = "0x00"
+private_key = "~/.aysa/0x00_rsa.ppk"
+remote_path = "/data/deploy/dashbaord"
+tag = "dev"
+
+[endpoints.quality]
+host = "scosta02.aysa.ad"
+port = 22
+username = "0x00"
+private_key = "~/.aysa/0x00_rsa.ppk"
+remote_path = "/data/deploy/dashbaord"
+tag = "rc"
+
+[manifest]
+create = 0000-00-00
+modified = 0000-00-00
+
+"""

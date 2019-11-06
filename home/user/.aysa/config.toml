@@ -23,6 +23,15 @@ private_key = "~/.aysa/0x00_rsa.ppk"
 remote_path = "/data/deploy/dashbaord"
 tag = "rc"
 
+[release]
+[release.quality]
+source = 'dev'
+target = 'rc'
+
+[release.production]
+source = 'rc'
+target = 'latest'
+
 [manifest]
 create = 2019-11-05
 modified = 2019-11-05

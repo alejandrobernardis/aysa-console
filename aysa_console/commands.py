@@ -10,7 +10,7 @@ from pathlib import Path
 from docopt import DocoptExit
 from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
-    NoSuchCommandError, CommandError, Printer, Counter
+    NoSuchCommandError, CommandError, Printer, Counter, CONFIG_TMPL
 from aysa_console._docker import Api
 from aysa_console.completer import DEVELOPMENT
 from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
@@ -22,8 +22,8 @@ total = Counter('Total')
 rx_login = re.compile(r'Login\sSucceeded$', re.I)
 rx_service = re.compile(r'^[a-z](?:[\w_])+$', re.I)
 rx_image = re.compile(r'^[a-z](?:[\w_])+_\d{1,3}\s{2,}[a-z0-9](?:[\w.-]+)'
-                       r'(?::\d{1,5})?/[a-z0-9](?:[\w.-/])*\s{2,}'
-                       r'(?:[a-z][\w.-]*)\s', re.I)
+                      r'(?::\d{1,5})?/[a-z0-9](?:[\w.-/])*\s{2,}'
+                      r'(?:[a-z][\w.-]*)\s', re.I)
 
 
 class BaseCommand:
@@ -40,7 +40,7 @@ class BaseCommand:
 
         # settings
         self.__session = session
-        self.__environment = environment
+        self.__environment = DottedDict(environment)
         self.__printer = printer or Printer()
         self.set_endpoint(default)
 
@@ -58,7 +58,7 @@ class BaseCommand:
 
     @property
     def environment(self):
-        return DottedDict(self.__environment)
+        return self.__environment
 
     @property
     def endpoint(self):
@@ -66,11 +66,11 @@ class BaseCommand:
 
     @property
     def endpoints(self):
-        return DottedDict(self.environment['endpoints'])
+        return self.environment['endpoints']
 
     @property
     def env(self):
-        return DottedDict(self.endpoints[self.endpoint])
+        return self.endpoints[self.endpoint]
 
     @property
     def cwd(self):
@@ -122,7 +122,7 @@ class BaseCommand:
         try:
             cnx = self.__cnx[endpoint]
         except KeyError:
-            env = DottedDict(self.endpoints[endpoint])
+            env = self.endpoints[endpoint]
             if env.username.lower() == 'root':
                 raise SystemExit('No se permite el uso del usaurio "ROOT."')
             ppk = Path(env.private_key).expanduser()
@@ -166,6 +166,9 @@ class BaseCommand:
             return
 
         cmd = argv[0].lower()
+
+        if cmd.startswith('.'):
+            cmd = '_' + cmd[1:]
 
         if not hasattr(self, cmd):
             cmd = 'help'
@@ -295,6 +298,23 @@ class Commands(BaseCommand):
         """
         self.set_endpoint(options['ENDPOINT'])
 
+    def _show(self, options, **kwargs):
+        """
+        Muestra la configuración del entorno.
+
+        usage: .show
+        """
+        self.out.json(self.environment.to_python())
+
+    def _config(self, options, **kwargs):
+        """
+        Muestra un template para el archivo
+        de configuración delentorno.
+
+        usage: .show
+        """
+        self.out(CONFIG_TMPL)
+
     # Despliegue
 
     def config(self, options, **kwargs):
@@ -308,7 +328,33 @@ class Commands(BaseCommand):
             self.run('docker-compose config --resolve-image-digests')
 
     def deploy(self, options, **kwargs):
-        pass
+        """
+        Inicia el proceso de despliegue.
+
+        usage:
+            deploy [options] [SERVICE...]
+
+        Argumentos Opcionales:
+            -u, --update    Actualiza el repositorio de la
+                            configuración del compose.
+            -y, --yes       Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            with self.cwd:
+                self._raise_for_login()
+                services = self._services(options)
+                images = self._images(services)
+                if services:
+                    x = ' '.join(services)
+                    self.run('docker-compose rm -fsv {}'.format(x))
+                if images:
+                    x = ' '.join(images)
+                    self.run('docker rmi -f {}'.format(x))
+                self.run('docker volume prune -f')
+                if kwargs.pop('--update', False) is True:
+                    self.run('git reset --hard')
+                    self.run('git pull --rebase --stat')
+                self.run('docker-compose up -d --remove-orphans')
 
     def down(self, options, **kwargs):
         """
@@ -350,7 +396,7 @@ class Commands(BaseCommand):
         """
         total.reset()
         if self.yes_dialog(**options):
-            for x in self.api.catalog():
+            for x in self.api.catalog(self.environment.registry.namespace):
                 self.out.bullet(x)
                 total.increment()
         self.out.footer(total)
