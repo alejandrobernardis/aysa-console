@@ -10,7 +10,7 @@ from functools import partialmethod
 from docopt import DocoptExit
 from pathlib import Path
 from tomlkit import api
-from prompt_toolkit.output import get_default_output
+from tomlkit.container import Container
 
 
 class DotDict(dict):
@@ -20,7 +20,8 @@ class DotDict(dict):
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
-        if isinstance(value, dict):
+        if isinstance(value, (dict, Container)):
+            print(item)
             return DotDict(**value)
         return value
 
@@ -127,12 +128,7 @@ def docoptions(obj, *args, **kwargs):
 
 
 class Printer:
-    def __init__(self, output=None):
-        if output is None:
-            try:
-                output = sys.stdout # get_default_output()
-            except:
-                output = sys.stdout
+    def __init__(self, output=sys.stdout):
         if not all([hasattr(output, 'write'), hasattr(output, 'flush')]):
             raise TypeError('El objeto "%s" no posee los métodos '
                             '"write" y/o "flush".' % output)
@@ -193,7 +189,7 @@ class Printer:
     bullet = partialmethod(write, prefix='> ')
 
     def __call__(self, *args, **kwargs):
-        self.write(*args, **kwargs)
+        self.flush(*args, **kwargs)
 
 
 class NoSuchCommandError(Exception):

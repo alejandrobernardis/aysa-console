@@ -2,6 +2,7 @@
 # Email alejandro.bernardis at gmail.com
 # Created: 2019/11/05 07:22
 
+import re
 import sys
 import shlex
 import logging
@@ -13,7 +14,13 @@ from aysa_console.completer import DEVELOPMENT
 from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from fabric import Connection
+
 log = logging.getLogger(__name__)
+rx_login = re.compile(r'Login\sSucceeded$', re.I)
+rx_service = re.compile(r'^[a-z](?:[\w_])+$', re.I)
+rx_image = re.compile(r'^[a-z](?:[\w_])+_\d{1,3}\s{2,}[a-z0-9](?:[\w.-]+)'
+                       r'(?::\d{1,5})?/[a-z0-9](?:[\w.-/])*\s{2,}'
+                       r'(?:[a-z][\w.-]*)\s', re.I)
 
 
 class BaseCommand:
@@ -64,6 +71,7 @@ class BaseCommand:
 
     @property
     def cwd(self):
+        print(type(self.env))
         value = '' if self.env.username == '0x00' else self.env.remote_path
         return self.cnx.cd(value)
 
@@ -172,10 +180,28 @@ class BaseCommand:
             return hdr(opt, **kwargs)
         except (DocoptExit, CommandExit, NoSuchCommandError):
             self.out(doc)
-        except SystemExit:
-            pass
-        except Exception as e:
-            self.out(e)
+        # except SystemExit:
+        #     pass
+        # except Exception as e:
+        #     self.out(e)
+
+    def _list(self, cmd, filter_line=None, obj=None):
+        response = self.run(cmd, hide=True)
+        for line in response.stdout.splitlines():
+            if filter_line and not filter_line.match(line):
+                continue
+            yield obj(line) if obj is not None else line
+
+    def _list_of_services(self, values=None, **kwargs):
+        for x in self._list("docker-compose ps --services", rx_service):
+            if values and x not in values:
+                continue
+            yield x
+
+    def _services(self, values):
+        if isinstance(values, dict):
+            values = values['SERVICE']
+        return set([x for x in self._list_of_services(values)])
 
 
 class Commands(BaseCommand):
@@ -252,7 +278,15 @@ class Commands(BaseCommand):
         pass
 
     def services(self, options, **kwargs):
-        pass
+        """
+        Lista los servicios disponibles.
+
+        usage:
+            services
+        """
+        with self.cwd:
+            for x in self._list_of_services():
+                self.out.bullet(x)
 
     def start(self, options, **kwargs):
         pass
