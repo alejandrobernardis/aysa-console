@@ -28,7 +28,7 @@ rx_image = re.compile(r'^[a-z](?:[\w_])+_\d{1,3}\s{2,}[a-z0-9](?:[\w.-]+)'
 
 class BaseCommand:
     def __init__(self, session, environment, default=DEVELOPMENT,
-                 printer=None, options=None, **kwargs):
+                 options=None, printer=None, **kwargs):
         # env
         self.__cnx = {}
         self.__api = None
@@ -170,6 +170,7 @@ class BaseCommand:
     def parse(self, argv, *args, **kwargs):
         try:
             argv = shlex.split(argv or '')
+
         except Exception:
             argv = None
 
@@ -357,29 +358,45 @@ class Commands(BaseCommand):
 
     def make(self, options, **kwargs):
         """
-        Crea las imágenes en la registry.
+        Crea las imágenes en la registry para el siguiente entorno.
+
+        ex:
+            (development) > make
+             dev -> rc
+             ...
+
+        En caso de requerirse las imágenes para el entorno sleccionado,
+        se puede utilziar el argumento `--force`.
 
         Usage:
             make [options] [IMAGE...]
 
         Opciones:
-            -y, --yes    Responde "SI" a todas las preguntas.
+            -y, --yes      Responde "SI" a todas las preguntas.
+            -f, --force    Fuerza la creación de la imágenes
+                           para el entorno actual.
         """
         if self.yes_dialog(**options):
             total.reset()
             images = self._fix_images_list(options['IMAGE'])
-            self.out(self.env.source_tag, '->', self.env.target_tag)
+            if self.env.force_tag and options.pop('--force', False) is True:
+                source_tag = self.env.force_tag
+                target_tag = self.env.source_tag
+            else:
+                source_tag = self.env.source_tag
+                target_tag = self.env.target_tag
+            self.out(source_tag, '->', target_tag)
             for x in self.api.catalog(self.registry.namespace):
                 if images and x not in images:
                     continue
-                i = Image('{}:{}'.format(x, self.env.source_tag))
+                i = Image('{}:{}'.format(x, source_tag))
                 try:
                     rollback = '{}-rollback'.format(i.tag)
                     self.api.put_tag(i.repository, i.tag, rollback)
                 except Exception:
                     pass
                 try:
-                    self.api.put_tag(i.repository, i.tag, self.env.target_tag)
+                    self.api.put_tag(i.repository, i.tag, target_tag)
                     self.out.bullet(i.repository)
                     total.increment()
                 except Exception as e:
