@@ -1,5 +1,5 @@
 [registry]
-host = "10.17.65.128:5000"
+host = "sdwsta01.aysa.ad:5000"
 insecure = 1
 verify = 0
 username = "dashboard"
