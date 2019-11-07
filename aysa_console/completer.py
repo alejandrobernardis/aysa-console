@@ -74,12 +74,13 @@ class CommandCompleter(Completer):
             except:
                 cmd = None
                 value = None
-            if cmd and cmd == '.set' and self._variables:
-                complete_list = value + self._variables
-            elif value is not None:
-                self._find_values(self._services, ARG_SERVICE, value)
-                self._find_values(self._images, ARG_IMAGE, value)
-                complete_list = value
+            if value is not None:
+                if cmd == '.set' and self._variables:
+                    complete_list = self._variables
+                else:
+                    self._find_values(self._services, ARG_SERVICE, value)
+                    self._find_values(self._images, ARG_IMAGE, value)
+                    complete_list = value
             else:
                 complete_list = []
         word = document.get_word_before_cursor()

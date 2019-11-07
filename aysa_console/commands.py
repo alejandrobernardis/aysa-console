@@ -10,7 +10,7 @@ from pathlib import Path
 from docopt import DocoptExit
 from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
-    NoSuchCommandError, Printer, Counter, CONFIG_TMPL
+    NoSuchCommandError, Printer, Counter, CONFIG_TMPL, flatten
 from aysa_console._docker import Api, Image
 from aysa_console.completer import DEVELOPMENT
 from aysa_console._custom import input_dialog, yes_no_dialog
@@ -291,12 +291,8 @@ class BaseCommand:
     def __set_completer(self):
         with self.cwd:
             print('loading completers...', end='\r')
-
-            self.session.completer.set_variables([
-                'registry.host',
-                'registry.username'
-            ])
-
+            variables = flatten(self.environment).keys()
+            self.session.completer.set_variables(variables)
             try:
                 images = [Image(x).image for x in self._list_of_images()]
                 self.session.completer.set_images(images)
