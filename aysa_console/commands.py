@@ -44,6 +44,8 @@ class BaseCommand:
         self.__environment = environment.document
         self.__printer = printer or Printer()
         self.set_endpoint(default)
+
+        # fix
         sys.excepthook = self._except_hook
 
     @property
@@ -98,9 +100,12 @@ class BaseCommand:
 
     def set_endpoint(self, value):
         value = str(value).lower()
+        if value == self.endpoint:
+            return
         if value not in self.endpoints:
             raise KeyError('El endpoint "{}" no es válido.'.format(value))
         self.__endpoint = value
+        self.__set_completer()
 
     def set_logger(self, options):
         if options.get('--debug', False):
@@ -283,6 +288,20 @@ class BaseCommand:
             return self.out(exception.__name__, ':', value)
         raise exception
 
+    def __set_completer(self):
+        with self.cwd:
+            print('loading completers...', end='\r')
+            try:
+                images = [Image(x).image for x in self._list_of_images()]
+                self.session.completer.set_images(images)
+            except Exception:
+                pass
+            try:
+                services = [x for x in self._list_of_services()]
+                self.session.completer.set_services(services)
+            except Exception:
+                pass
+
 
 class Commands(BaseCommand):
     """
@@ -335,9 +354,9 @@ class Commands(BaseCommand):
             deploy [options] [SERVICE...]
 
         Argumentos Opcionales:
+            -y, --yes       Responde "SI" a todas las preguntas.
             -u, --update    Actualiza el repositorio de la
                             configuración del compose.
-            -y, --yes       Responde "SI" a todas las preguntas.
         """
         if self.yes_dialog(**options):
             with self.cwd:
@@ -472,7 +491,7 @@ class Commands(BaseCommand):
         """
         Recarga la configuración del entorno.
 
-        usage: .reload [ARGS...]
+        usage: .reload
         """
         self._reload_env()
 
@@ -531,7 +550,7 @@ class Commands(BaseCommand):
         Reinicia uno o más servicios.
 
         usage:
-            restart [options] [IMAGE...]
+            restart [options] [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -543,7 +562,7 @@ class Commands(BaseCommand):
         Elimina uno o más servicios.
 
         usage:
-            rm [options] [IMAGE...]
+            rm [options] [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -572,7 +591,7 @@ class Commands(BaseCommand):
         Inicia uno o más servicios.
 
         usage:
-            start [options] [IMAGE...]
+            start [options] [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -584,7 +603,7 @@ class Commands(BaseCommand):
         Detiene uno o más servicios.
 
         usage:
-            stop [options] [IMAGE...]
+            stop [options] [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.

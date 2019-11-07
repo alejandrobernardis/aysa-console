@@ -47,6 +47,7 @@ def main():
     from aysa_console.completer import DEVELOPMENT, QUALITY, CommandCompleter
     from pathlib import Path
     from docopt import docopt
+    print('starting...', end='\r')
 
     opt = docopt(__doc__, version=__version__)
     default = QUALITY if opt.get(QUALITY, False) else DEVELOPMENT
