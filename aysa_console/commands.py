@@ -284,7 +284,7 @@ class BaseCommand:
             self.out(e)
 
     def _setvar_env(self, variable, value):
-        print(variable, value)
+        self.environment[variable] = value
 
     def _except_hook(self, exception, value, traceback):
         if exception not in (KeyboardInterrupt, EOFError):
