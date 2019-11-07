@@ -64,7 +64,7 @@ def main():
         auto_suggest=AutoSuggestFromHistory()
     )
 
-    commands = Commands(session, env.document, default, options=opt)
+    commands = Commands(session, env, default, options=opt)
 
     while 1:
         try:

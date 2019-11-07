@@ -2,7 +2,7 @@
 # Email alejandro.bernardis at gmail.com
 # Created: 2019/11/05 07:22
 
-from shlex import split
+import shlex
 from prompt_toolkit.completion import Completer, Completion
 
 ARGUMENTS = [
@@ -45,7 +45,10 @@ class CommandCompleter(Completer):
         if not line or line.count(' ') == 0:
             complete_list = self.commands
         else:
-            value = self.commands.get(split(line)[0], None)
+            try:
+                value = self.commands.get(shlex.split(line)[0], None)
+            except:
+                value = None
             if value is not None:
                 complete_list = value
             else:

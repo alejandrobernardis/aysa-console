@@ -11,7 +11,7 @@ from docopt import DocoptExit
 from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
     NoSuchCommandError, CommandError, Printer, Counter, CONFIG_TMPL
-from aysa_console._docker import Api
+from aysa_console._docker import Api, Image
 from aysa_console.completer import DEVELOPMENT
 from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
 from prompt_toolkit.styles import Style
@@ -40,7 +40,8 @@ class BaseCommand:
 
         # settings
         self.__session = session
-        self.__environment = DottedDict(environment)
+        self.__env = environment
+        self.__environment = environment.document
         self.__printer = printer or Printer()
         self.set_endpoint(default)
 
@@ -58,6 +59,8 @@ class BaseCommand:
 
     @property
     def environment(self):
+        if not isinstance(self.__environment, DottedDict):
+            self.__environment = DottedDict(self.__environment)
         return self.__environment
 
     @property
@@ -67,6 +70,10 @@ class BaseCommand:
     @property
     def endpoints(self):
         return self.environment['endpoints']
+
+    @property
+    def registry(self):
+        return self.environment['registry']
 
     @property
     def env(self):
@@ -138,7 +145,7 @@ class BaseCommand:
     @property
     def api(self) -> Api:
         if self.__api is None:
-            self.__api = Api(**self.environment.registry)
+            self.__api = Api(**self.registry)
         return self.__api
 
     def yes_dialog(self, title=None, text=None, **kwargs):
@@ -160,7 +167,10 @@ class BaseCommand:
         self.parse(text, **kwargs)
 
     def parse(self, argv, *args, **kwargs):
-        argv = shlex.split(argv or '')
+        try:
+            argv = shlex.split(argv or '')
+        except Exception:
+            argv = None
 
         if not argv:
             return
@@ -168,7 +178,7 @@ class BaseCommand:
         cmd = argv[0].lower()
 
         if cmd.startswith('.'):
-            cmd = '_' + cmd[1:]
+            cmd = '_{}'.format(cmd[1:])
 
         if not hasattr(self, cmd):
             cmd = 'help'
@@ -176,6 +186,9 @@ class BaseCommand:
         for x in ('help', 'exit'):
             if x == cmd:
                 return getattr(self, cmd)()
+
+        if cmd == '_cmd':
+            return getattr(self, cmd)(argv, **kwargs)
 
         hdr = getattr(self, cmd)
         doc = self.get_docstring(hdr)
@@ -187,10 +200,10 @@ class BaseCommand:
             return hdr(opt, **kwargs)
         except (DocoptExit, CommandExit, NoSuchCommandError):
             self.out(doc)
-        # except SystemExit:
-        #     pass
-        # except Exception as e:
-        #     self.out(e)
+        except SystemExit:
+            pass
+        except Exception as e:
+            self.out(e)
 
     def _list(self, cmd, filter_line=None, obj=None):
         response = self.run(cmd, hide=True)
@@ -234,7 +247,7 @@ class BaseCommand:
     def _login(self):
         try:
             cmd = 'docker login -u {username} -p {password} {host}' \
-                  .format(**self.environment.registry)
+                  .format(**self.registry)
             res = self.run(cmd, hide=True).stdout
             return rx_login.match(res) is not None
         except Exception as e:
@@ -246,6 +259,21 @@ class BaseCommand:
             raise ValueError('No se pudo establecer la sesión '
                              'con la `registry`.')
 
+    def _fix_image_name(self, value, namespace=None):
+        value = value.strip()
+        namespace = namespace or self.registry.namespace or ''
+        if namespace and not value.startswith(namespace):
+            return '{}/{}'.format(namespace, value)
+        return value
+
+    def _fix_images_list(self, values, namespace=None):
+        values = values.split(',') if isinstance(values, str) else values or []
+        return [self._fix_image_name(x.strip(), namespace) for x in values]
+
+    def _reload_env(self):
+        self.__environment = self.__env.load().document
+        self.set_endpoint(self.endpoint)
+
 
 class Commands(BaseCommand):
     """
@@ -254,21 +282,22 @@ class Commands(BaseCommand):
     Usage:
         COMMAND [ARGS...]
 
-    Comandos de Entorno:
-        select      Selecciona el entorno de ejecución
-                    [default: development]
-
-    Comandos de Despliegue:
-        config      Muestra la configuración del compose.
+    Comandos Despliegue:
         deploy      Inicia el proceso de despliegue.
-        down        Detiene y elimina todos servicios.
-        images      Lista las imágenes disponibles.
         make        Crea las imágenes en la registry.
         prune       Detiene y elimina todos los servicios,
                     como así también las imágenes y volúmenes
                     aosicados.
+        select      Selecciona el entorno de ejecución
+                    [default: development]
+
+    Comandos Contenedores:
+        config      Muestra la configuración del compose.
+        down        Detiene y elimina todos servicios.
+        images      Lista las imágenes disponibles.
         ps          Muestra los servicios desplegados.
         restart     Reinicia uno o más servicios.
+        rm          Elimina uno o más servicios detenidos.
         services    Lista los servicios disponibles.
         start       Inicia uno o más servicios.
         stop        Detiene uno o más servicios.
@@ -288,44 +317,6 @@ class Commands(BaseCommand):
         sys.exit(code)
 
     # Entorno
-
-    def select(self, options, **kwargs):
-        """
-        Selecciona el entorno de ejecución.
-
-        usage:
-            select ENDPOINT
-        """
-        self.set_endpoint(options['ENDPOINT'])
-
-    def _show(self, options, **kwargs):
-        """
-        Muestra la configuración del entorno.
-
-        usage: .show
-        """
-        self.out.json(self.environment.to_python())
-
-    def _config(self, options, **kwargs):
-        """
-        Muestra un template para el archivo
-        de configuración delentorno.
-
-        usage: .show
-        """
-        self.out(CONFIG_TMPL)
-
-    # Despliegue
-
-    def config(self, options, **kwargs):
-        """
-        Muestra la configuración del compose.
-
-        usage:
-            config
-        """
-        with self.cwd:
-            self.run('docker-compose config --resolve-image-digests')
 
     def deploy(self, options, **kwargs):
         """
@@ -356,6 +347,121 @@ class Commands(BaseCommand):
                     self.run('git pull --rebase --stat')
                 self.run('docker-compose up -d --remove-orphans')
 
+    def make(self, options, **kwargs):
+        """
+        Crea las imágenes en la registry.
+
+        Usage:
+            make [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            total.reset()
+            images = self._fix_images_list(options['IMAGE'])
+            for x in self.api.catalog(self.registry.namespace):
+                if images and x not in images:
+                    continue
+                i = Image('{}:{}'.format(x, self.env.source_tag))
+                try:
+                    rollback = '{}-rollback'.format(i.tag)
+                    self.api.put_tag(i.repository, i.tag, rollback)
+                except Exception:
+                    pass
+                try:
+                    self.api.put_tag(i.repository, i.tag, self.env.target_tag)
+                    self.out.bullet(i.repository)
+                    total.increment()
+                except Exception as e:
+                    self.out(i.repository, e)
+            self.out.footer(total)
+
+    def prune(self, options, **kwargs):
+        """
+        Detiene y elimina todos los servicios, como así también
+        las imágenes y volúmenes aosicados.
+
+        Usage:
+            prune [options]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        message = 'Se procederá a "PURGAR" el entorno de "{0}", el ' \
+                  'siguiente proceso es "IRRÉVERSIBLE". Desdea continuar?\n' \
+                  'Por favor, escriba el nombre del entorno <{0}> para ' \
+                  'continuar:'.format(self.endpoint)
+        result, answer = self.confirm_dialog(message, self.endpoint)
+        if result is False and answer is not None:
+            message = 'El nombre de entorno "{}" no concuerda con "{}"' \
+                      .format(answer, self.endpoint)
+            raise ValueError(message)
+        elif answer is None:
+            return
+        with self.cwd:
+            self.run('docker-compose down -v --rmi all --remove-orphans')
+            self.run('docker volume prune -f')
+
+    def select(self, options, **kwargs):
+        """
+        Selecciona el entorno de ejecución.
+
+        usage:
+            select ENDPOINT
+        """
+        self.set_endpoint(options['ENDPOINT'])
+
+    def _show(self, options, **kwargs):
+        """
+        Muestra la configuración del entorno.
+
+        usage: .show
+        """
+        self.out.json(self.environment.to_python())
+
+    def _template(self, options, **kwargs):
+        """
+        Muestra un template para el archivo
+        de configuración delentorno.
+
+        usage: .template
+        """
+        self.out(CONFIG_TMPL)
+
+    def _cmd(self, options, **kwargs):
+        """
+        Ejecuta comando de forma remota.
+
+        usage: .cmd [ARGS...]
+        """
+        with self.cwd:
+            args = options[1:]
+            if args[0] in ('docker', 'docker-compose', 'git'):
+                self.run(' '.join(args))
+            else:
+                self.out('[NO SEAS PICARÓN] Comando no permitido:', args[0])
+
+    def _reload(self, options, **kwargs):
+        """
+        Recarga la configuración del entorno.
+
+        usage: .reload [ARGS...]
+        """
+        self._reload_env()
+
+    # Despliegue
+
+    def config(self, options, **kwargs):
+        """
+        Muestra la configuración del compose.
+
+        usage:
+            config
+        """
+        with self.cwd:
+            self.run('docker-compose config --resolve-image-digests')
+
     def down(self, options, **kwargs):
         """
         Detiene y elimina todos servicios.
@@ -384,49 +490,6 @@ class Commands(BaseCommand):
                 total.increment()
         self.out.footer(total)
 
-    def make(self, options, **kwargs):
-        """
-        Crea las imágenes en la registry.
-
-        Usage:
-            make [options] [IMAGE...]
-
-        Opciones:
-            -y, --yes    Responde "SI" a todas las preguntas.
-        """
-        total.reset()
-        if self.yes_dialog(**options):
-            for x in self.api.catalog(self.environment.registry.namespace):
-                self.out.bullet(x)
-                total.increment()
-        self.out.footer(total)
-
-    def prune(self, options, **kwargs):
-        """
-        Detiene y elimina todos los servicios, como así también
-        las imágenes y volúmenes aosicados.
-
-        Usage:
-            prune [options]
-
-        Opciones:
-            -y, --yes    Responde "SI" a todas las preguntas.
-        """
-        message = 'Se procederá a "PURGAR" el entorno de "{0}", el ' \
-                  'siguiente proceso es "IRRÉVERSIBLE". Desdea continuar?\n' \
-                  'Por favor, escriba el nombre del entorno <{0}> para ' \
-                  'continuar:'.format(self.endpoint)
-        result, answer = self.confirm_dialog(message, self.endpoint)
-        if result is False and answer is not None:
-            message = 'El nombre de entorno "{}" no concuerda con "{}"' \
-                      .format(answer, self.endpoint)
-            raise ValueError(message)
-        elif answer is None:
-            return
-        with self.cwd:
-            self.run('docker-compose down -v --rmi all --remove-orphans')
-            self.run('docker volume prune -f')
-
     def ps(self, options, **kwargs):
         """
         Muestra los servicios desplegados.
@@ -448,6 +511,21 @@ class Commands(BaseCommand):
             -y, --yes    Responde "SI" a todas las preguntas.
         """
         self._change_state('restart', options, **kwargs)
+
+    def rm(self, options, **kwargs):
+        """
+        Elimina uno o más servicios.
+
+        usage:
+            rm [options] [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            with self.cwd:
+                services = ' '.join(self._services(options))
+                self.run('docker-compose rm -fsv {}'.format(services))
 
     def services(self, options, **kwargs):
         """
