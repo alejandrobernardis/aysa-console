@@ -10,10 +10,10 @@ from pathlib import Path
 from docopt import DocoptExit
 from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
-    NoSuchCommandError, CommandError, Printer, Counter, CONFIG_TMPL
+    NoSuchCommandError, Printer, Counter, CONFIG_TMPL
 from aysa_console._docker import Api, Image
 from aysa_console.completer import DEVELOPMENT
-from prompt_toolkit.shortcuts import yes_no_dialog, input_dialog
+from aysa_console._custom import input_dialog, yes_no_dialog
 from prompt_toolkit.styles import Style
 from fabric import Connection
 

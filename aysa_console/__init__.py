@@ -40,8 +40,9 @@ __copyright__ = 'Copyright 2019-% {}'.format(__author__)
 # dispatcher
 def main():
     from prompt_toolkit import PromptSession
-    from prompt_toolkit.history import FileHistory
     from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+    from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.history import FileHistory
     from aysa_console._common import load_env
     from aysa_console.commands import Commands
     from aysa_console.completer import DEVELOPMENT, QUALITY, CommandCompleter
@@ -62,7 +63,8 @@ def main():
     session = PromptSession(
         completer=CommandCompleter(),
         history=FileHistory(str(Path('~/.aysax_history').expanduser())),
-        auto_suggest=AutoSuggestFromHistory()
+        auto_suggest=AutoSuggestFromHistory(),
+        key_bindings=KeyBindings()
     )
 
     commands = Commands(session, env, default, opt)
