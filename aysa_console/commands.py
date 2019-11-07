@@ -44,6 +44,7 @@ class BaseCommand:
         self.__environment = environment.document
         self.__printer = printer or Printer()
         self.set_endpoint(default)
+        sys.excepthook = self._except_hook
 
     @property
     def session(self):
@@ -200,9 +201,7 @@ class BaseCommand:
             return hdr(opt, **kwargs)
         except (DocoptExit, CommandExit, NoSuchCommandError):
             self.out(doc)
-        except SystemExit:
-            pass
-        except Exception as e:
+        except (SystemExit, Exception) as e:
             self.out(e)
 
     def _list(self, cmd, filter_line=None, obj=None):
@@ -251,7 +250,6 @@ class BaseCommand:
             res = self.run(cmd, hide=True).stdout
             return rx_login.match(res) is not None
         except Exception as e:
-            print(e)
             return False
 
     def _raise_for_login(self):
@@ -271,8 +269,18 @@ class BaseCommand:
         return [self._fix_image_name(x.strip(), namespace) for x in values]
 
     def _reload_env(self):
-        self.__environment = self.__env.load().document
-        self.set_endpoint(self.endpoint)
+        try:
+            self.__environment = self.__env.load().document
+            self.__cnx.clear()
+            self.__api = None
+            self.set_endpoint(self.endpoint)
+        except Exception as e:
+            self.out(e)
+
+    def _except_hook(self, exception, value, traceback):
+        if exception not in (KeyboardInterrupt, EOFError):
+            return self.out(exception.__name__, ':', value)
+        raise exception
 
 
 class Commands(BaseCommand):
@@ -311,7 +319,7 @@ class Commands(BaseCommand):
     # Generales
 
     def help(self, **kwargs):
-        print(self.get_docstring())
+        self.out(self.get_docstring())
 
     def exit(self, code=0, **kwargs):
         sys.exit(code)
@@ -360,6 +368,7 @@ class Commands(BaseCommand):
         if self.yes_dialog(**options):
             total.reset()
             images = self._fix_images_list(options['IMAGE'])
+            self.out(self.env.source_tag, '->', self.env.target_tag)
             for x in self.api.catalog(self.registry.namespace):
                 if images and x not in images:
                     continue

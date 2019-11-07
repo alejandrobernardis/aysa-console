@@ -240,6 +240,16 @@ class Counter:
         return self.__str__()
 
 
+def _tbiter(traceback):
+    while traceback:
+        yield traceback
+        traceback = traceback.tb_next
+
+
+def _tblast(traceback):
+    return [x for x in _tbiter(traceback)][-1]
+
+
 CONFIG_TMPL = """
 [registry]
 host = "10.17.65.128:5000"
