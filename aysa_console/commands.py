@@ -283,6 +283,9 @@ class BaseCommand:
         except Exception as e:
             self.out(e)
 
+    def _setvar_env(self, variable, value):
+        print(variable, value)
+
     def _except_hook(self, exception, value, traceback):
         if exception not in (KeyboardInterrupt, EOFError):
             return self.out(exception.__name__, ':', value)
@@ -291,16 +294,18 @@ class BaseCommand:
     def __set_completer(self):
         with self.cwd:
             print('loading completers...', end='\r')
-            variables = flatten(self.environment).keys()
+
+            variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
+
             try:
                 images = [Image(x).image for x in self._list_of_images()]
                 self.session.completer.set_images(images)
             except Exception:
                 pass
+
             try:
-                services = [x for x in self._list_of_services()]
-                self.session.completer.set_services(services)
+                self.session.completer.set_services(self._services())
             except Exception:
                 pass
 
@@ -483,7 +488,7 @@ class Commands(BaseCommand):
 
         usage: .set [VARIABLE] [VALUE]
         """
-        self.out(options)
+        self._setvar_env(options['VARIABLE'], options['VALUE'])
 
     def _cmd(self, options, **kwargs):
         """

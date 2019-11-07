@@ -261,6 +261,7 @@ def flatten(d, parent_key='', sep='_'):
             items.append((new_key, v))
     return dict(items)
 
+
 CONFIG_TMPL = """
 [registry]
 host = "10.17.65.128:5000"

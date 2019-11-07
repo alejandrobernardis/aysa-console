@@ -56,7 +56,10 @@ class CommandCompleter(Completer):
         }
 
     def __check_value(self, variable, values):
-        value = values if values and isinstance(values, list) else None
+        value = values if values and isinstance(values, (set, list, tuple)) \
+            else None
+        if not isinstance(value, set):
+            value = set(value)
         setattr(self, variable, value)
 
     set_images = partialmethod(__check_value, '_images')
@@ -65,9 +68,11 @@ class CommandCompleter(Completer):
 
     def get_completions(self, document, complete_event):
         line = document.text_before_cursor
-        if not line or line.count(' ') == 0:
+        line_count = line.count(' ')
+        if not line or line_count == 0:
             complete_list = self.commands
         else:
+            complete_list = []
             try:
                 cmd = shlex.split(line)[0]
                 value = self.commands.get(cmd, None)
@@ -76,14 +81,14 @@ class CommandCompleter(Completer):
                 value = None
             if value is not None:
                 if cmd == '.set' and self._variables:
-                    complete_list = self._variables
+                    if line_count == 1:
+                        complete_list = self._variables
                 else:
                     self._find_values(self._services, ARG_SERVICE, value)
                     self._find_values(self._images, ARG_IMAGE, value)
                     complete_list = value
-            else:
-                complete_list = []
         word = document.get_word_before_cursor()
+        complete_list = sorted(complete_list)
         for x in complete_list:
             if x.lower().startswith(word) and x not in line:
                 yield Completion(x, -len(word))
