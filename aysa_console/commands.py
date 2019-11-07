@@ -291,6 +291,12 @@ class BaseCommand:
     def __set_completer(self):
         with self.cwd:
             print('loading completers...', end='\r')
+
+            self.session.completer.set_variables([
+                'registry.host',
+                'registry.username'
+            ])
+
             try:
                 images = [Image(x).image for x in self._list_of_images()]
                 self.session.completer.set_images(images)
@@ -473,6 +479,15 @@ class Commands(BaseCommand):
         usage: .template
         """
         self.out(CONFIG_TMPL)
+
+    def _set(self, options, **kwargs):
+        """
+        Modificación de las variables de la
+        configuración del entorno.
+
+        usage: .set [VARIABLE] [VALUE]
+        """
+        self.out(options)
 
     def _cmd(self, options, **kwargs):
         """

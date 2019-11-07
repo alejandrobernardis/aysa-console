@@ -29,6 +29,8 @@ class CommandCompleter(Completer):
     def __init__(self):
         self._images = None
         self._services = None
+        self._variables = None
+
         self.commands = {
             # general
             'help': None,
@@ -48,7 +50,9 @@ class CommandCompleter(Completer):
             'services': None,
             'start': [OPT_YES, ARG_SERVICE],
             'stop': [OPT_YES, ARG_SERVICE],
-            'up': [OPT_YES, ARG_SERVICE]
+            'up': [OPT_YES, ARG_SERVICE],
+            # hidden
+            '.set': [OPT_YES]
         }
 
     def __check_value(self, variable, values):
@@ -57,6 +61,7 @@ class CommandCompleter(Completer):
 
     set_images = partialmethod(__check_value, '_images')
     set_services = partialmethod(__check_value, '_services')
+    set_variables = partialmethod(__check_value, '_variables')
 
     def get_completions(self, document, complete_event):
         line = document.text_before_cursor
@@ -64,10 +69,14 @@ class CommandCompleter(Completer):
             complete_list = self.commands
         else:
             try:
-                value = self.commands.get(shlex.split(line)[0], None)
+                cmd = shlex.split(line)[0]
+                value = self.commands.get(cmd, None)
             except:
+                cmd = None
                 value = None
-            if value is not None:
+            if cmd and cmd == '.set' and self._variables:
+                complete_list = value + self._variables
+            elif value is not None:
                 self._find_values(self._services, ARG_SERVICE, value)
                 self._find_values(self._images, ARG_IMAGE, value)
                 complete_list = value
