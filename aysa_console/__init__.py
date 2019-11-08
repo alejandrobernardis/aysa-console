@@ -8,22 +8,17 @@ usage:
     aysax [options] [development|quality]
 
 Argumentos Opcionales:
-    -h, --help                              Muestra la `ayuda` del programa.
-    -v, --version                           Muestra la `versión` del programa.
-    -D, --debug                             Activa el modo `debug`.
-    -V, --verbose                           Activa el modo `verbose`.
-    -Q, --quiet                             Activa el mode `quiet`, no se imprime
-                                            ningún mensaje.
-    -O filename, --debug-output=filename    Archivo de salida para el modo `debug`.
-    -E filename, --env=filename             Archivo de configuración del entorno (`.toml`),
-                                            el mismo será buscado en la siguiente ruta
-                                            de no ser definido: `~/.aysa/config.toml`.
+    -h, --help                     Muestra la `ayuda` del programa.
+    -v, --version                  Muestra la `versión` del programa.
+    -E filename, --env=filename    Archivo de configuración del entorno (`.toml`),
+                                   el mismo será buscado en la siguiente ruta
+                                   de no ser definido: `~/.aysa/config.toml`.
 """
 import sys
 
 # version
-SEGMENT = 'dev'
-VERSION = (1, 0, 0, SEGMENT, 0)
+SEGMENT = 'pyChu'
+VERSION = (2, 0, 0, SEGMENT, 0)
 
 # doc
 __title__ = 'aysa-console'

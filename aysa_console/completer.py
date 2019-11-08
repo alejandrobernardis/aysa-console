@@ -40,12 +40,15 @@ class CommandCompleter(Completer):
             'ps': None,
             'restart': [OPT_YES, ARG_SERVICE],
             'rm': [OPT_YES, ARG_SERVICE],
+            'rmi': [OPT_YES, ARG_IMAGE],
             'services': None,
             'start': [OPT_YES, ARG_SERVICE],
             'stop': [OPT_YES, ARG_SERVICE],
             'up': [OPT_YES, ARG_SERVICE],
             # hidden
-            '.set': [OPT_YES]
+            '.save': [OPT_YES],
+            '.set': [OPT_YES],
+            '.show': [OPT_YES],
         }
 
     def __check_value(self, variable, values):
@@ -73,14 +76,14 @@ class CommandCompleter(Completer):
                 cmd = None
                 value = None
             if value is not None:
-                if cmd == '.set' and self._variables:
+                if cmd in ('.set', '.save', '.show') and self._variables:
                     if line_count == 1:
                         complete_list = self._variables
                 else:
                     self._find_values(self._services, ARG_SERVICE, value)
                     self._find_values(self._images, ARG_IMAGE, value)
                     complete_list = value
-        word = document.get_word_before_cursor()
+        word = document.get_word_before_cursor(WORD=True)
         complete_list = sorted(complete_list)
         for x in complete_list:
             if x.lower().startswith(word) and x not in line:

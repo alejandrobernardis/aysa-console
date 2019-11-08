@@ -41,13 +41,15 @@ class EnvFile:
             self.__document = api.parse(f.read())
         return self
 
-    def save(self, document=None, filename=None):
+    def save(self, document=None, filename=None, reload=True):
         if filename is not None:
             self.set_filename(filename)
         value = api.dumps(document or self.__document)
         with self.filename.open('w') as f:
             f.write(value)
-        return self.load()
+        if reload is True:
+            self.load()
+        return self
 
     @property
     def filename(self):
@@ -260,35 +262,3 @@ def flatten(d, parent_key='', sep='_'):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
-CONFIG_TMPL = """
-[registry]
-host = "10.17.65.128:5000"
-insecure = 1
-verify = 0
-username = ""
-password = ""
-namespace = ""
-
-[endpoints]
-[endpoints.development]
-host = "scosta01.aysa.ad"
-port = 22
-username = "0x00"
-private_key = "~/.aysa/0x00_rsa.ppk"
-remote_path = "/data/deploy/dashbaord"
-tag = "dev"
-
-[endpoints.quality]
-host = "scosta02.aysa.ad"
-port = 22
-username = "0x00"
-private_key = "~/.aysa/0x00_rsa.ppk"
-remote_path = "/data/deploy/dashbaord"
-tag = "rc"
-
-[manifest]
-create = 0000-00-00
-modified = 0000-00-00
-"""

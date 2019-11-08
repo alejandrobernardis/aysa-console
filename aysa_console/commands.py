@@ -6,11 +6,12 @@ import re
 import sys
 import shlex
 import logging
+import tomlkit.api as tomlkit
 from pathlib import Path
 from docopt import DocoptExit
 from dotted.collection import DottedDict
 from aysa_console._common import docstring, docoptions, CommandExit, \
-    NoSuchCommandError, Printer, Counter, CONFIG_TMPL, flatten
+    NoSuchCommandError, Printer, Counter, flatten
 from aysa_console._docker import Api, Image
 from aysa_console.completer import DEVELOPMENT
 from aysa_console._custom import input_dialog, yes_no_dialog
@@ -285,7 +286,17 @@ class BaseCommand:
             self.out(e)
 
     def _setvar_env(self, variable, value):
-        self.environment[variable] = value
+        if variable not in self.environment:
+            raise KeyError('La variable "{}" no está soportada.'
+                           .format(variable))
+        self.environment[variable] = value or ''
+
+    def _savevar_env(self, variable, value):
+        if all([variable, value]):
+            self._setvar_env(variable, value)
+        self.__env.save(tomlkit.item(self.environment.to_python()),
+                        reload=False)
+        self._reload_env()
 
     def _except_hook(self, exception, value, traceback):
         if exception not in (KeyboardInterrupt, EOFError):
@@ -295,20 +306,17 @@ class BaseCommand:
     def __set_completer(self):
         with self.cwd:
             print('loading completers...', end='\r')
-
             variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
-
-            try:
-                images = [Image(x).image for x in self._list_of_images()]
-                self.session.completer.set_images(images)
-            except Exception:
-                pass
-
-            try:
-                self.session.completer.set_services(self._services())
-            except Exception:
-                pass
+            # try:
+            #     images = [Image(x).image for x in self._list_of_images()]
+            #     self.session.completer.set_images(images)
+            # except Exception:
+            #     pass
+            # try:
+            #     self.session.completer.set_services(self._services())
+            # except Exception:
+            #     pass
 
 
 class Commands(BaseCommand):
@@ -334,6 +342,7 @@ class Commands(BaseCommand):
         ps          Muestra los servicios desplegados.
         restart     Reinicia uno o más servicios.
         rm          Elimina uno o más servicios detenidos.
+        rm          Elimina uno o más imágenes.
         services    Lista los servicios disponibles.
         start       Inicia uno o más servicios.
         stop        Detiene uno o más servicios.
@@ -357,6 +366,15 @@ class Commands(BaseCommand):
     def deploy(self, options, **kwargs):
         """
         Inicia el proceso de despliegue.
+
+            1. Purgado:
+                1. Detiene y elimina los servicios.
+                2. Elimina las imágenes.
+                3. Purga los volumenes.
+                4. Actualiza el repositorio (opcional).
+
+            2. Creación
+                1. Crea e inicia los servicios.
 
         usage:
             deploy [options] [SERVICE...]
@@ -520,7 +538,7 @@ class Commands(BaseCommand):
         Reinicia uno o más servicios.
 
         usage:
-            restart [options] [SERVICE...]
+            restart [options] SERVICE [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -532,7 +550,7 @@ class Commands(BaseCommand):
         Elimina uno o más servicios.
 
         usage:
-            rm [options] [SERVICE...]
+            rm [options] SERVICE [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -541,6 +559,21 @@ class Commands(BaseCommand):
             with self.cwd:
                 services = ' '.join(self._services(options))
                 self.run('docker-compose rm -fsv {}'.format(services))
+
+    def rmi(self, options, **kwargs):
+        """
+        Elimina uno o más imágenes.
+
+        usage:
+            rmi [options] IMAGE [IMAGE...]
+
+        Opciones:
+            -y, --yes    Responde "SI" a todas las preguntas.
+        """
+        if self.yes_dialog(**options):
+            with self.cwd:
+                images = ' '.join(self._images(options))
+                self.run('docker rmi -f {}'.format(images))
 
     def services(self, options, **kwargs):
         """
@@ -561,7 +594,7 @@ class Commands(BaseCommand):
         Inicia uno o más servicios.
 
         usage:
-            start [options] [SERVICE...]
+            start [options] SERVICE [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -573,7 +606,7 @@ class Commands(BaseCommand):
         Detiene uno o más servicios.
 
         usage:
-            stop [options] [SERVICE...]
+            stop [options] SERVICE [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -585,7 +618,7 @@ class Commands(BaseCommand):
         Crea e inicia uno o más servicios.
 
         usage:
-            up [options] [SERVICE...]
+            up [options] SERVICE [SERVICE...]
 
         Opciones:
             -y, --yes    Responde "SI" a todas las preguntas.
@@ -599,45 +632,6 @@ class Commands(BaseCommand):
 
     # hiden
 
-    def _show(self, options, **kwargs):
-        """
-        Muestra la configuración del entorno.
-
-        usage: .show
-        """
-        self.out.json(self.environment.to_python())
-
-    def _template(self, options, **kwargs):
-        """
-        Muestra un template para el archivo
-        de configuración delentorno.
-
-        usage: .template
-        """
-        self.out(CONFIG_TMPL)
-
-    def _set(self, options, **kwargs):
-        """
-        Modificación de las variables de la
-        configuración del entorno.
-
-        usage: .set [VARIABLE] [VALUE]
-        """
-        self._setvar_env(options['VARIABLE'], options['VALUE'])
-
-    def _cmd(self, options, **kwargs):
-        """
-        Ejecuta comando de forma remota.
-
-        usage: .cmd [ARGS...]
-        """
-        with self.cwd:
-            args = options[1:]
-            if args[0] in ('docker', 'docker-compose', 'git'):
-                self.run(' '.join(args))
-            else:
-                self.out('[NO SEAS PICARÓN] Comando no permitido:', args[0])
-
     def _reload(self, options, **kwargs):
         """
         Recarga la configuración del entorno.
@@ -645,3 +639,57 @@ class Commands(BaseCommand):
         usage: .reload
         """
         self._reload_env()
+
+    def _save(self, options, **kwargs):
+        """
+        Actualiza el valor de la variable y
+        guarda el documento en el archivo
+        de configuración.
+
+        En caso de no definirse una variable,
+        guarda el documento completo.
+
+        usage: .save [VARIABLE [VALUE]]
+        """
+        self._savevar_env(options['VARIABLE'], options['VALUE'])
+
+    def _set(self, options, **kwargs):
+        """
+        Actualiza el valor de la variable.
+
+        usage: .set VARIABLE [VALUE]
+        """
+        self._setvar_env(options['VARIABLE'], options['VALUE'])
+
+    def _show(self, options, **kwargs):
+        """
+        Muestra la configuración del entorno.
+
+        usage: .show [VARIABLE]
+        """
+        value = options['VARIABLE']
+        if not value:
+            self.out.json(self.environment.to_python())
+        else:
+            self.out(self.environment[value])
+
+    # OJO!
+
+    def _cmd(self, options, **kwargs):
+        """
+        Ejecuta comando de forma remota.
+
+        usage: .cmd [ARGS...]
+        """
+        try:
+            with self.cwd:
+                args = options[1:]
+                cmd = args[0]
+                if cmd in ('help', '-h', '--help'):
+                    self.out(self.get_docstring(self._cmd))
+                elif cmd in ('docker', 'docker-compose', 'git'):
+                    self.run(' '.join(args))
+                else:
+                    self.out('[NO SEAS PICARÓN] NO permitido ->', args[0])
+        except Exception as e:
+            self.out(e)
