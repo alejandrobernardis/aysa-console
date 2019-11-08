@@ -56,7 +56,24 @@ def main():
     try:
         env = load_env(opt.pop('--env', None))
 
-    except Exception:
+    except FileNotFoundError:
+        print('creating configuration file...', end='\r')
+        import os
+        import shutil
+
+        filename = 'config.toml'
+        user_path = Path('~/.aysa').expanduser()
+        os.makedirs(str(user_path), exist_ok=True)
+
+        tmpl_file = Path(__file__).parent.joinpath(filename)
+        shutil.copyfile(str(tmpl_file), str(user_path.joinpath(filename)))
+
+        print('\n[ATENCIÓN]: Por favor, debes editar el archivo "{}" para '
+              'definir correctamente los parámetros de conexión.\n'
+              .format(tmpl_file))
+        sys.exit()
+
+    except Exception as e:
         raise SystemExit('No es posible cargar la configuración '
                          'de los entornos.')
 

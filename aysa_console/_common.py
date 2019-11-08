@@ -291,5 +291,4 @@ tag = "rc"
 [manifest]
 create = 0000-00-00
 modified = 0000-00-00
-
 """

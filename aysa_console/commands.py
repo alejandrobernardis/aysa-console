@@ -218,7 +218,8 @@ class BaseCommand:
             yield obj(line) if obj is not None else line
 
     def _list_of_services(self, values=None, **kwargs):
-        for x in self._list("docker-compose ps --services", rx_service):
+        cmd = 'docker-compose ps --services'
+        for x in self._list(cmd, rx_service, **kwargs):
             if values and x not in values:
                 continue
             yield x
@@ -226,22 +227,22 @@ class BaseCommand:
     def _norm_service(self, value, sep='_'):
         return sep.join(value.split(sep)[1:-1])
 
-    def _services(self, values):
+    def _services(self, values=None, **kwargs):
         if isinstance(values, dict):
             values = values['SERVICE']
-        return set([x for x in self._list_of_services(values)])
+        return set([x for x in self._list_of_services(values, **kwargs)])
 
     def _list_of_images(self, values=None, **kwargs):
-        for x in self._list("docker-compose images", rx_image):
+        for x in self._list("docker-compose images", rx_image, **kwargs):
             container, image, tag = x.split()[:3]
             if values and self._norm_service(container) not in values:
                 continue
             yield '{}:{}'.format(image, tag)
 
-    def _images(self, values):
+    def _images(self, values=None, **kwargs):
         if isinstance(values, dict):
             values = values['IMAGE']
-        return set([x for x in self._list_of_images(values)])
+        return set([x for x in self._list_of_images(values, **kwargs)])
 
     def _change_state(self, state, options, **kwargs):
         if self.yes_dialog(**options):
@@ -249,16 +250,16 @@ class BaseCommand:
                 services = ' '.join(self._services(options))
                 self.run('docker-compose {} {}'.format(state, services))
 
-    def _login(self):
+    def _login(self, **kwargs):
         try:
             cmd = 'docker login -u {username} -p {password} {host}' \
                   .format(**self.registry)
             res = self.run(cmd, hide=True).stdout
             return rx_login.match(res) is not None
-        except Exception as e:
+        except Exception:
             return False
 
-    def _raise_for_login(self):
+    def _raise_for_login(self, **kwargs):
         if not self._login():
             raise ValueError('No se pudo establecer la sesión '
                              'con la `registry`.')
@@ -464,53 +465,6 @@ class Commands(BaseCommand):
         """
         self.set_endpoint(options['ENDPOINT'])
 
-    def _show(self, options, **kwargs):
-        """
-        Muestra la configuración del entorno.
-
-        usage: .show
-        """
-        self.out.json(self.environment.to_python())
-
-    def _template(self, options, **kwargs):
-        """
-        Muestra un template para el archivo
-        de configuración delentorno.
-
-        usage: .template
-        """
-        self.out(CONFIG_TMPL)
-
-    def _set(self, options, **kwargs):
-        """
-        Modificación de las variables de la
-        configuración del entorno.
-
-        usage: .set [VARIABLE] [VALUE]
-        """
-        self._setvar_env(options['VARIABLE'], options['VALUE'])
-
-    def _cmd(self, options, **kwargs):
-        """
-        Ejecuta comando de forma remota.
-
-        usage: .cmd [ARGS...]
-        """
-        with self.cwd:
-            args = options[1:]
-            if args[0] in ('docker', 'docker-compose', 'git'):
-                self.run(' '.join(args))
-            else:
-                self.out('[NO SEAS PICARÓN] Comando no permitido:', args[0])
-
-    def _reload(self, options, **kwargs):
-        """
-        Recarga la configuración del entorno.
-
-        usage: .reload
-        """
-        self._reload_env()
-
     # Despliegue
 
     def config(self, options, **kwargs):
@@ -642,3 +596,52 @@ class Commands(BaseCommand):
                 services = ' '.join(self._services(options))
                 self.run('docker-compose up -d --remove-orphans {}'
                          .format(services))
+
+    # hiden
+
+    def _show(self, options, **kwargs):
+        """
+        Muestra la configuración del entorno.
+
+        usage: .show
+        """
+        self.out.json(self.environment.to_python())
+
+    def _template(self, options, **kwargs):
+        """
+        Muestra un template para el archivo
+        de configuración delentorno.
+
+        usage: .template
+        """
+        self.out(CONFIG_TMPL)
+
+    def _set(self, options, **kwargs):
+        """
+        Modificación de las variables de la
+        configuración del entorno.
+
+        usage: .set [VARIABLE] [VALUE]
+        """
+        self._setvar_env(options['VARIABLE'], options['VALUE'])
+
+    def _cmd(self, options, **kwargs):
+        """
+        Ejecuta comando de forma remota.
+
+        usage: .cmd [ARGS...]
+        """
+        with self.cwd:
+            args = options[1:]
+            if args[0] in ('docker', 'docker-compose', 'git'):
+                self.run(' '.join(args))
+            else:
+                self.out('[NO SEAS PICARÓN] Comando no permitido:', args[0])
+
+    def _reload(self, options, **kwargs):
+        """
+        Recarga la configuración del entorno.
+
+        usage: .reload
+        """
+        self._reload_env()

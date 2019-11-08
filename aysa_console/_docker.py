@@ -291,7 +291,7 @@ class Image:
 
     def __str__(self):
         return '<{} Namespace="{}" Image="{}" Tag="{}">'\
-               .format(self.registry or '',
+               .format(self.registry or 'Registry',
                        self.namespace or '',
                        self.image or '',
                        self.tag or '')

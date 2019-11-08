@@ -4,14 +4,7 @@
 
 import shlex
 from functools import partialmethod
-
 from prompt_toolkit.completion import Completer, Completion
-
-ARGUMENTS = [
-    ('-h', '--help'),
-    ('-u', '--update'),
-    ('-y', '--yes')
-]
 
 DEVELOPMENT = 'development'
 QUALITY = 'quality'
