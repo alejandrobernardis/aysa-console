@@ -308,15 +308,15 @@ class BaseCommand:
             print('loading completers...', end='\r')
             variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
-            # try:
-            #     images = [Image(x).image for x in self._list_of_images()]
-            #     self.session.completer.set_images(images)
-            # except Exception:
-            #     pass
-            # try:
-            #     self.session.completer.set_services(self._services())
-            # except Exception:
-            #     pass
+            try:
+                images = [Image(x).image for x in self._list_of_images()]
+                self.session.completer.set_images(images)
+            except Exception:
+                pass
+            try:
+                self.session.completer.set_services(self._services())
+            except Exception:
+                pass
 
 
 class Commands(BaseCommand):
