@@ -34,25 +34,39 @@ __copyright__ = 'Copyright 2019-% {}'.format(__author__)
 
 # dispatcher
 def main():
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-    from prompt_toolkit.key_binding import KeyBindings
-    from prompt_toolkit.history import FileHistory
-    from aysa_console._common import load_env
-    from aysa_console.commands import Commands
-    from aysa_console.completer import DEVELOPMENT, QUALITY, CommandCompleter
-    from pathlib import Path
-    from docopt import docopt
-    print('starting...', end='\r')
-
-    opt = docopt(__doc__, version=__version__)
-    default = QUALITY if opt.get(QUALITY, False) else DEVELOPMENT
-
     try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.history import FileHistory
+        from aysa_console._common import load_env
+        from aysa_console.commands import Commands
+        from aysa_console.completer import DEVELOPMENT, QUALITY, \
+            CommandCompleter
+        from pathlib import Path
+        from docopt import docopt, DocoptExit
+
+        opt = docopt(__doc__, version=__version__)
         env = load_env(opt.pop('--env', None))
+
+        print('starting...', end='\r')
+
+        session = PromptSession(
+            completer=CommandCompleter(),
+            history=FileHistory(str(Path('~/.aysax_history').expanduser())),
+            auto_suggest=AutoSuggestFromHistory(),
+            key_bindings=KeyBindings()
+        )
+
+        default = QUALITY if opt.get(QUALITY, False) else DEVELOPMENT
+        commands = Commands(session, env, default, opt)
+
+    except DocoptExit:
+        sys.exit(__doc__)
 
     except FileNotFoundError:
         print('creating configuration file...', end='\r')
+
         import os
         import shutil
 
@@ -63,31 +77,23 @@ def main():
         tmpl_file = Path(__file__).parent.joinpath(filename)
         shutil.copyfile(str(tmpl_file), str(user_path.joinpath(filename)))
 
-        print('\n[ATENCIÓN]: Por favor, debes editar el archivo "{}" para '
-              'definir correctamente los parámetros de conexión.\n'
-              .format(tmpl_file))
-        sys.exit()
+        sys.exit('\n[ATENCIÓN]: Por favor, debes editar el archivo "{}" para '
+                 'definir correctamente los parámetros de conexión.\n'
+                 .format(tmpl_file))
 
     except Exception as e:
-        raise SystemExit('No es posible cargar la configuración '
-                         'de los entornos.')
+        sys.exit(str(e))
 
-    session = PromptSession(
-        completer=CommandCompleter(),
-        history=FileHistory(str(Path('~/.aysax_history').expanduser())),
-        auto_suggest=AutoSuggestFromHistory(),
-        key_bindings=KeyBindings()
-    )
-
-    commands = Commands(session, env, default, opt)
-
-    while 1:
-        try:
-            commands.prompt()
-        except KeyboardInterrupt:
-            continue
-        except EOFError:
-            break
+    else:
+        while 1:
+            try:
+                commands.prompt()
+            except KeyboardInterrupt:
+                continue
+            except EOFError:
+                break
+            except Exception as e:
+                commands.out(e)
 
 
 if __name__ == '__main__':

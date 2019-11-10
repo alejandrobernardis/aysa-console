@@ -21,11 +21,6 @@ ARG_IMAGE = '<IMAGE>'
 
 class CommandCompleter(Completer):
     def __init__(self):
-        # Variables
-        self._images = None
-        self._services = None
-        self._variables = None
-
         # Mapeo de los comandos
         self.commands = {
             # general
@@ -82,12 +77,13 @@ class CommandCompleter(Completer):
                 cmd = None
                 value = None
             if value is not None:
-                if cmd in ('.set', '.save', '.show') and self._variables:
+                variables = getattr(self, '_variables', None)
+                if cmd in ('.set', '.save', '.show') and variables:
                     if line_count == 1:
-                        complete_list = self._variables
+                        complete_list = variables
                 else:
-                    self._find_values(self._services, ARG_SERVICE, value)
-                    self._find_values(self._images, ARG_IMAGE, value)
+                    self._find_values('_services', ARG_SERVICE, value)
+                    self._find_values('_images', ARG_IMAGE, value)
                     complete_list = value
         word = document.get_word_before_cursor(WORD=True)
         complete_list = sorted(complete_list)
@@ -98,5 +94,5 @@ class CommandCompleter(Completer):
     def _find_values(self, variable, argument, value):
         if argument in value:
             value.pop(-1)
-            value += variable or []
+            value += getattr(self, variable, None) or []
         return value

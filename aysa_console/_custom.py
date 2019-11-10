@@ -44,7 +44,7 @@ def input_dialog(title='', text='', ok_text='OK', cancel_text='Cancel',
                  completer=None, password=False, style=None, async_=False):
     def accept(buf):
         get_app().layout.focus(ok_button)
-        return True  # Keep text.
+        return True
 
     def ok_handler():
         get_app().exit(result=textfield.text)

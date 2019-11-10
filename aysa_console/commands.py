@@ -289,6 +289,9 @@ class BaseCommand:
         if variable not in self.environment:
             raise KeyError('La variable "{}" no está soportada.'
                            .format(variable))
+        if isinstance(self.environment[variable], (DottedDict, dict)):
+            raise ValueError('La variable "{}" es un diccionario, por lo que '
+                             'no está permitido modificarla.'.format(variable))
         self.environment[variable] = value or ''
 
     def _savevar_env(self, variable, value):
@@ -305,14 +308,17 @@ class BaseCommand:
 
     def __set_completer(self):
         with self.cwd:
-            print('loading completers...', end='\r')
+            self.out('loading completers...', end='\r')
+
             variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
+
             try:
                 images = [Image(x).image for x in self._list_of_images()]
                 self.session.completer.set_images(images)
             except Exception:
                 pass
+
             try:
                 self.session.completer.set_services(self._services())
             except Exception:
@@ -668,10 +674,13 @@ class Commands(BaseCommand):
         usage: .show [VARIABLE]
         """
         value = options['VARIABLE']
-        if not value:
-            self.out.json(self.environment.to_python())
+        value = self.environment if not value else self.environment[value]
+        if isinstance(value, (DottedDict, dict)):
+            if hasattr(value, 'to_python'):
+                value = value.to_python()
+            self.out.json(value)
         else:
-            self.out(self.environment[value])
+            self.out(value)
 
     # OJO!
 
@@ -685,17 +694,12 @@ class Commands(BaseCommand):
             with self.cwd:
                 if not options:
                     return
-
                 cmd = options[1]
-
                 if cmd.replace('-', '') == 'help':
                     self.out(self.get_docstring(self._cmd))
-
                 elif cmd in ('docker', 'docker-compose', 'git'):
                     self.run(' '.join(options[1:]))
-
                 else:
                     self.out('[NO SEAS PICARÓN] NO permitido ->', cmd)
-
         except Exception as e:
             self.out(e)
