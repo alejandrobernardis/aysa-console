@@ -357,6 +357,9 @@ class Commands(BaseCommand):
     Comandos Generales:
         help        Muestra la ayuda del programa.
         exit        Sale del programa. (Ctrl + D)
+
+    >> Consulte `COMAND (-h|--help|help)` para obtener más información
+       sobre un comando específico.
     """
 
     # Generales
