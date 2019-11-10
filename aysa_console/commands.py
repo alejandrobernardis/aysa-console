@@ -292,7 +292,7 @@ class BaseCommand:
         self.environment[variable] = value or ''
 
     def _savevar_env(self, variable, value):
-        if all([variable, value]):
+        if variable:
             self._setvar_env(variable, value)
         self.__env.save(tomlkit.item(self.environment.to_python()),
                         reload=False)
@@ -683,13 +683,19 @@ class Commands(BaseCommand):
         """
         try:
             with self.cwd:
-                args = options[1:]
-                cmd = args[0]
-                if cmd in ('help', '-h', '--help'):
+                if not options:
+                    return
+
+                cmd = options[1]
+
+                if cmd.replace('-', '') == 'help':
                     self.out(self.get_docstring(self._cmd))
+
                 elif cmd in ('docker', 'docker-compose', 'git'):
-                    self.run(' '.join(args))
+                    self.run(' '.join(options[1:]))
+
                 else:
-                    self.out('[NO SEAS PICARÓN] NO permitido ->', args[0])
+                    self.out('[NO SEAS PICARÓN] NO permitido ->', cmd)
+
         except Exception as e:
             self.out(e)

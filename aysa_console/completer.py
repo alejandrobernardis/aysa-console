@@ -8,7 +8,8 @@ from prompt_toolkit.completion import Completer, Completion
 
 DEVELOPMENT = 'development'
 QUALITY = 'quality'
-ENVIRONS = (DEVELOPMENT, QUALITY)
+PRODUCTION = 'production'
+ENVIRONS = (DEVELOPMENT, QUALITY)  # , PRODUCTION)
 
 OPT_HELP = '--help'
 OPT_YES = '--yes'
@@ -20,19 +21,23 @@ ARG_IMAGE = '<IMAGE>'
 
 class CommandCompleter(Completer):
     def __init__(self):
+        # Variables
         self._images = None
         self._services = None
         self._variables = None
 
+        # Mapeo de los comandos
         self.commands = {
             # general
             'help': None,
             'exit': None,
+
             # despliegue
             'deploy': [OPT_YES, OPT_UPDATE, ARG_SERVICE],
             'make': [OPT_YES, OPT_FORCE, ARG_IMAGE],
             'prune': [OPT_YES],
             'select': [DEVELOPMENT, QUALITY],
+
             # Contenedores
             'config': None,
             'down': [OPT_YES],
@@ -45,6 +50,7 @@ class CommandCompleter(Completer):
             'start': [OPT_YES, ARG_SERVICE],
             'stop': [OPT_YES, ARG_SERVICE],
             'up': [OPT_YES, ARG_SERVICE],
+
             # hidden
             '.save': [OPT_YES],
             '.set': [OPT_YES],
@@ -90,7 +96,7 @@ class CommandCompleter(Completer):
                 yield Completion(x, -len(word))
 
     def _find_values(self, variable, argument, value):
-        if variable and argument in value:
+        if argument in value:
             value.pop(-1)
-            value += variable
+            value += variable or []
         return value

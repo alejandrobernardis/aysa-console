@@ -1,11 +1,3 @@
-[registry]
-host = "sdwsta01.aysa.ad:5000"
-insecure = 1
-verify = 0
-username = "dashboard"
-password = "******"
-namespace = "dash"
-
 [endpoints]
 [endpoints.development]
 host = "scosta01.aysa.ad"
@@ -36,3 +28,11 @@ target_tag = "latest"
 #force_tag = ""
 #source_tag = "rc"
 #target_tag = "latest"
+
+[registry]
+host = "sdwsta01.aysa.ad:5000"
+insecure = 1
+verify = 0
+username = "dashboard"
+password = "******"
+namespace = "dash"
