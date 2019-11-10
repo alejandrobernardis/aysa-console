@@ -47,7 +47,7 @@ Se requiere la versión de `python` **>=3.6**, en adelante.
 
 ## Configuración
 
-Al iniciar por primera vez la consola, se creará un archivo (ubicación: `~/.aysa/config.toml`) para definir la configuración de los entornos. 
+Al iniciar por primera vez la consola se creará un archivo (ubicación: `~/.aysa/config.toml`) para definir la configuración de los entornos. 
 
 ```toml
 [endpoints]
@@ -78,4 +78,41 @@ verify = 0
 username = "dashboard"
 password = "******"
 namespace = "dash"
+```
+
+## Help
+
+```bash
+(development) > help
+
+AySA Command Line Interface.
+
+Usage:
+    COMMAND [ARGS...]
+
+Comandos Despliegue:
+    deploy      Inicia el proceso de despliegue.
+    make        Crea las imágenes en la registry.
+    prune       Detiene y elimina todos los servicios,
+                como así también las imágenes y volúmenes
+                aosicados.
+    select      Selecciona el entorno de ejecución
+                [default: development]
+
+Comandos Contenedores:
+    config      Muestra la configuración del compose.
+    down        Detiene y elimina todos servicios.
+    images      Lista las imágenes disponibles.
+    ps          Muestra los servicios desplegados.
+    restart     Reinicia uno o más servicios.
+    rm          Elimina uno o más servicios detenidos.
+    rm          Elimina uno o más imágenes.
+    services    Lista los servicios disponibles.
+    start       Inicia uno o más servicios.
+    stop        Detiene uno o más servicios.
+    up          Crea e inicia uno o más servicios.
+
+Comandos Generales:
+    help        Muestra la ayuda del programa.
+    exit        Sale del programa. (Ctrl + D)
 ```
