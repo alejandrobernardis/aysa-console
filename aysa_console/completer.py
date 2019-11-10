@@ -73,7 +73,7 @@ class CommandCompleter(Completer):
             try:
                 cmd = shlex.split(line)[0]
                 value = self.commands.get(cmd, None)
-            except:
+            except Exception:
                 cmd = None
                 value = None
             if value is not None:

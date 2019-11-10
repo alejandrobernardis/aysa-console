@@ -48,6 +48,7 @@ class BaseCommand:
 
         # fix
         sys.excepthook = self._except_hook
+        log.debug('initialized')
 
     @property
     def session(self):
@@ -106,6 +107,7 @@ class BaseCommand:
         if value not in self.endpoints:
             raise KeyError('El endpoint "{}" no es válido.'.format(value))
         self.__endpoint = value
+        log.debug('set endpoint: %s', value)
         self.__set_completer()
 
     def set_logger(self, options):
@@ -135,6 +137,7 @@ class BaseCommand:
     def get_cnx(self, endpoint):
         try:
             cnx = self.__cnx[endpoint]
+            log.debug('get cnx from cache: %s', endpoint)
         except KeyError:
             env = self.endpoints[endpoint]
             if env.username.lower() == 'root':
@@ -143,6 +146,7 @@ class BaseCommand:
             cnx = Connection(env.host, env.username, int(env.port),
                              connect_kwargs={'key_filename': str(ppk)})
             self.__cnx[endpoint] = cnx
+            log.debug('created a new cnx: %s', endpoint)
         return cnx
 
     @property
@@ -179,6 +183,9 @@ class BaseCommand:
 
         except Exception:
             argv = None
+
+        log.debug('cmd: %s', argv)
+        log.debug('cmd (extra): %s', kwargs)
 
         if not argv:
             return
@@ -256,6 +263,7 @@ class BaseCommand:
             cmd = 'docker login -u {username} -p {password} {host}' \
                   .format(**self.registry)
             res = self.run(cmd, hide=True).stdout
+            log.debug('registry login: %s', res)
             return rx_login.match(res) is not None
         except Exception:
             return False
@@ -279,6 +287,7 @@ class BaseCommand:
     def _reload_env(self):
         try:
             self.__environment = self.__env.load().document
+            log.debug('reload environment')
             self.__cnx.clear()
             self.__api = None
             self.set_endpoint(self.endpoint)
@@ -299,6 +308,7 @@ class BaseCommand:
             self._setvar_env(variable, value)
         self.__env.save(tomlkit.item(self.environment.to_python()),
                         reload=False)
+        log.debug('save environment')
         self._reload_env()
 
     def _except_hook(self, exception, value, traceback):
@@ -312,15 +322,18 @@ class BaseCommand:
 
             variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
+            log.debug('load variables completer')
 
             try:
                 images = [Image(x).image for x in self._list_of_images()]
                 self.session.completer.set_images(images)
+                log.debug('load images completer')
             except Exception:
                 pass
 
             try:
                 self.session.completer.set_services(self._services())
+                log.debug('load services completer')
             except Exception:
                 pass
 
