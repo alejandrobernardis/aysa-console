@@ -720,7 +720,7 @@ class Commands(BaseCommand):
         """
         try:
             with self.cwd:
-                if not options:
+                if not options or len(options) == 1:
                     return
                 cmd = options[1]
                 if cmd.replace('-', '') == 'help':
