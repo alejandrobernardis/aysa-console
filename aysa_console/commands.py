@@ -295,8 +295,6 @@ class BaseCommand:
             self.out(e)
 
     def _setvar_env(self, variable, value):
-        if variable.endswith('.'):
-            variable = variable[:-1]
         if variable not in self.environment:
             raise KeyError('La variable "{}" no está soportada.'
                            .format(variable))
@@ -694,7 +692,6 @@ class Commands(BaseCommand):
         value = options['VARIABLE']
         if value.endswith('.'):
             value = value[:-1]
-        print(value)
         value = self.environment if not value else self.environment[value]
         if isinstance(value, (DottedDict, dict)):
             if hasattr(value, 'to_python'):
