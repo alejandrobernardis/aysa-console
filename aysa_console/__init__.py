@@ -77,14 +77,15 @@ def main():
         os.makedirs(str(user_path), exist_ok=True)
 
         tmpl_file = Path(__file__).parent.joinpath(filename)
-        shutil.copyfile(str(tmpl_file), str(user_path.joinpath(filename)))
+        user_file = user_path.joinpath(filename)
+        shutil.copyfile(str(tmpl_file), str(user_file))
 
         sys.exit('\n[ATENCIÓN]: Por favor, debes editar el archivo "{}" para '
                  'definir correctamente los parámetros de conexión.\n'
-                 .format(tmpl_file))
+                 .format(user_file))
 
-    # except Exception as e:
-    #     sys.exit(str(e))
+    except Exception as e:
+        sys.exit(str(e))
 
     else:
         while 1:
