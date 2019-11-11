@@ -52,7 +52,6 @@ class CommandCompleter(Completer):
         }
 
     def __check_value(self, variable, values):
-        print(variable, values)
         value = values if values and isinstance(values, (set, list, tuple)) \
             else None
         if not isinstance(value, set):

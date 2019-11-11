@@ -37,22 +37,18 @@ class BaseCommand:
         self.__endpoint = None
         self.__session_style = kwargs.pop('style', None)
 
+        # logger
         if options is not None:
             self.set_logger(options)
 
-        # session
+        # settings
         self.__session = session
-
-        # environ
         self.__env = environment
         self.__environment = environment.document
-
-        # printer
         self.__printer = printer or Printer()
-
-        # settings
-        self.session.completer.set_environs([x for x in self.endpoints.keys()])
         self.set_endpoint(default)
+
+        # hook
         sys.excepthook = self._except_hook
         log.debug('initialized')
 
@@ -325,6 +321,10 @@ class BaseCommand:
     def __set_completer(self):
         with self.cwd:
             self.out('loading completers...', end='\r')
+
+            environs = set(self.endpoints.keys())
+            self.session.completer.set_environs(environs)
+            log.debug('load environs completer')
 
             variables = set(flatten(self.environment, sep='.').keys())
             self.session.completer.set_variables(variables)
