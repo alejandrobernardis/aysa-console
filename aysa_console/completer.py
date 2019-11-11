@@ -25,6 +25,7 @@ class CommandCompleter(Completer):
         self.commands = {
             # general
             'help': None,
+            'version': None,
             'exit': None,
 
             # despliegue

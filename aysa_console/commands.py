@@ -10,6 +10,7 @@ import tomlkit.api as tomlkit
 from pathlib import Path
 from docopt import DocoptExit
 from dotted.collection import DottedDict
+from aysa_console import __version__
 from aysa_console._common import docstring, docoptions, CommandExit, \
     NoSuchCommandError, Printer, Counter, flatten
 from aysa_console._docker import Api, Image
@@ -198,7 +199,7 @@ class BaseCommand:
         if not hasattr(self, cmd):
             cmd = 'help'
 
-        for x in ('help', 'exit'):
+        for x in ('help', 'version', 'exit'):
             if x == cmd:
                 return getattr(self, cmd)()
 
@@ -369,6 +370,7 @@ class Commands(BaseCommand):
 
     Comandos Generales:
         help        Muestra la ayuda del programa.
+        version     Muestra la versión del programa.
         exit        Sale del programa. (Ctrl + D)
 
     >> Consulte `COMMAND (-h|--help|help)` para obtener
@@ -379,6 +381,9 @@ class Commands(BaseCommand):
 
     def help(self, **kwargs):
         self.out(self.get_docstring())
+
+    def version(self, **kwargs):
+        self.out(__version__)
 
     def exit(self, code=0, **kwargs):
         sys.exit(code)

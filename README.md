@@ -114,6 +114,7 @@ Comandos Contenedores:
 
 Comandos Generales:
     help        Muestra la ayuda del programa.
+    version     Muestra la versión del programa.
     exit        Sale del programa. (Ctrl + D)
 
 >> Consulte `COMMAND (-h|--help|help)` para obtener 
