@@ -106,7 +106,7 @@ Comandos Contenedores:
     ps          Muestra los servicios desplegados.
     restart     Reinicia uno o más servicios.
     rm          Elimina uno o más servicios detenidos.
-    rm          Elimina uno o más imágenes.
+    rmi         Elimina uno o más imágenes.
     services    Lista los servicios disponibles.
     start       Inicia uno o más servicios.
     stop        Detiene uno o más servicios.
@@ -158,3 +158,4 @@ Las dependencias se encuentran definidas en el archivo `Pipfile`, para la gesti�
 
 ```bash
 > pipenv lock --requirements > requirements.txt
+```
