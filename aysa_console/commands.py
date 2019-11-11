@@ -697,7 +697,7 @@ class Commands(BaseCommand):
         usage: .show [VARIABLE]
         """
         value = options['VARIABLE']
-        if value.endswith('.'):
+        if value and value.endswith('.'):
             value = value[:-1]
         value = self.environment if not value else self.environment[value]
         if isinstance(value, (DottedDict, dict)):
