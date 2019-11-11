@@ -26,6 +26,11 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     python_requires='>=3.6.*, <4',
 
+    package_data={
+        '': ['LICENSE', 'README.md'],
+        'aysa_console': ['config.toml']
+    },
+
     install_requires=[
         'bcrypt==3.1.7',
         'certifi==2019.9.11',
