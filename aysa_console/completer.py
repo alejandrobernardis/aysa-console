@@ -29,28 +29,28 @@ class CommandCompleter(Completer):
             'exit': None,
 
             # despliegue
-            'deploy': [OPT_YES, OPT_UPDATE, ARG_SERVICE],
-            'make': [OPT_YES, OPT_FORCE, ARG_IMAGE],
-            'prune': [OPT_YES],
-            'select': [DEVELOPMENT, QUALITY],
+            'deploy': [OPT_HELP, OPT_YES, OPT_UPDATE, ARG_SERVICE],
+            'make': [OPT_HELP, OPT_YES, OPT_FORCE, ARG_IMAGE],
+            'prune': [OPT_HELP, OPT_YES],
+            'select': [OPT_HELP, DEVELOPMENT, QUALITY],
 
             # Contenedores
-            'config': None,
-            'down': [OPT_YES],
-            'images': None,
-            'ps': None,
-            'restart': [OPT_YES, ARG_SERVICE],
-            'rm': [OPT_YES, ARG_SERVICE],
-            'rmi': [OPT_YES, ARG_IMAGE],
-            'services': None,
-            'start': [OPT_YES, ARG_SERVICE],
-            'stop': [OPT_YES, ARG_SERVICE],
-            'up': [OPT_YES, ARG_SERVICE],
+            'config': [OPT_HELP],
+            'down': [OPT_HELP, OPT_YES],
+            'images': [OPT_HELP],
+            'ps': [OPT_HELP],
+            'restart': [OPT_HELP, OPT_YES, ARG_SERVICE],
+            'rm': [OPT_HELP, OPT_YES, ARG_SERVICE],
+            'rmi': [OPT_HELP, OPT_YES, ARG_IMAGE],
+            'services': [OPT_HELP],
+            'start': [OPT_HELP, OPT_YES, ARG_SERVICE],
+            'stop': [OPT_HELP, OPT_YES, ARG_SERVICE],
+            'up': [OPT_HELP, OPT_YES, ARG_SERVICE],
 
             # hidden
-            '.save': [OPT_YES],
-            '.set': [OPT_YES],
-            '.show': [OPT_YES],
+            '.save': [OPT_HELP, OPT_YES],
+            '.set': [OPT_HELP, OPT_YES],
+            '.show': [OPT_HELP, OPT_YES],
         }
 
     def __check_value(self, variable, values):

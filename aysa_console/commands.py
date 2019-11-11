@@ -40,8 +40,10 @@ class BaseCommand:
         if options is not None:
             self.set_logger(options)
 
-        # settings
+        # session
         self.__session = session
+
+        # settings
         self.__env = environment
         self.__environment = environment.document
         self.__printer = printer or Printer()
