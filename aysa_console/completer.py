@@ -15,8 +15,9 @@ OPT_HELP = '--help'
 OPT_YES = '--yes'
 OPT_UPDATE = '--update'
 OPT_FORCE = '--force'
-ARG_SERVICE = '<SERVICE>'
+ARG_ENVIRONS = '<ENVIRONS>'
 ARG_IMAGE = '<IMAGE>'
+ARG_SERVICE = '<SERVICE>'
 
 
 class CommandCompleter(Completer):
@@ -30,7 +31,7 @@ class CommandCompleter(Completer):
             'deploy': [OPT_HELP, OPT_YES, OPT_UPDATE, ARG_SERVICE],
             'make': [OPT_HELP, OPT_YES, OPT_FORCE, ARG_IMAGE],
             'prune': [OPT_HELP, OPT_YES],
-            'select': [OPT_HELP, DEVELOPMENT, QUALITY],
+            'select': [OPT_HELP, ARG_ENVIRONS],
             # Contenedores
             'config': [OPT_HELP],
             'down': [OPT_HELP, OPT_YES],
@@ -51,12 +52,14 @@ class CommandCompleter(Completer):
         }
 
     def __check_value(self, variable, values):
+        print(variable, values)
         value = values if values and isinstance(values, (set, list, tuple)) \
             else None
         if not isinstance(value, set):
             value = set(value)
         setattr(self, variable, value)
 
+    set_environs = partialmethod(__check_value, '_environs')
     set_images = partialmethod(__check_value, '_images')
     set_services = partialmethod(__check_value, '_services')
     set_variables = partialmethod(__check_value, '_variables')
@@ -81,8 +84,9 @@ class CommandCompleter(Completer):
                     if line_count == 1:
                         complete_list = variables
                 else:
-                    self._find_values('_services', ARG_SERVICE, value)
+                    self._find_values('_environs', ARG_ENVIRONS, value)
                     self._find_values('_images', ARG_IMAGE, value)
+                    self._find_values('_services', ARG_SERVICE, value)
                     complete_list = value
         word = document.get_word_before_cursor(WORD=True)
         complete_list = sorted(complete_list)

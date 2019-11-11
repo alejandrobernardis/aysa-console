@@ -43,13 +43,16 @@ class BaseCommand:
         # session
         self.__session = session
 
-        # settings
+        # environ
         self.__env = environment
         self.__environment = environment.document
-        self.__printer = printer or Printer()
-        self.set_endpoint(default)
 
-        # fix
+        # printer
+        self.__printer = printer or Printer()
+
+        # settings
+        self.session.completer.set_environs([x for x in self.endpoints.keys()])
+        self.set_endpoint(default)
         sys.excepthook = self._except_hook
         log.debug('initialized')
 
@@ -229,7 +232,7 @@ class BaseCommand:
             yield obj(line) if obj is not None else line
 
     def _list_of_services(self, values=None, **kwargs):
-        cmd = 'docker-compose ps --services'
+        cmd = 'docker-compose config --services'
         for x in self._list(cmd, rx_service, **kwargs):
             if values and x not in values:
                 continue

@@ -83,8 +83,8 @@ def main():
                  'definir correctamente los parámetros de conexión.\n'
                  .format(tmpl_file))
 
-    except Exception as e:
-        sys.exit(str(e))
+    # except Exception as e:
+    #     sys.exit(str(e))
 
     else:
         while 1:
