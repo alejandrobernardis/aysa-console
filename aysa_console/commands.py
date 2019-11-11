@@ -364,7 +364,7 @@ class Commands(BaseCommand):
         ps          Muestra los servicios desplegados.
         restart     Reinicia uno o más servicios.
         rm          Elimina uno o más servicios detenidos.
-        rm          Elimina uno o más imágenes.
+        rmi         Elimina uno o más imágenes.
         services    Lista los servicios disponibles.
         start       Inicia uno o más servicios.
         stop        Detiene uno o más servicios.
@@ -489,7 +489,7 @@ class Commands(BaseCommand):
             -y, --yes    Responde "SI" a todas las preguntas.
         """
         message = 'Se procederá a "PURGAR" el entorno de "{0}", el ' \
-                  'siguiente proceso es "IRRÉVERSIBLE". Desdea continuar?\n' \
+                  'siguiente proceso es "IRRÉVERSIBLE".\n\n' \
                   'Por favor, escriba el nombre del entorno <{0}> para ' \
                   'continuar:'.format(self.endpoint)
         result, answer = self.confirm_dialog(message, self.endpoint)
@@ -699,13 +699,16 @@ class Commands(BaseCommand):
         value = options['VARIABLE']
         if value and value.endswith('.'):
             value = value[:-1]
-        value = self.environment if not value else self.environment[value]
-        if isinstance(value, (DottedDict, dict)):
-            if hasattr(value, 'to_python'):
-                value = value.to_python()
-            self.out.json(value)
-        else:
-            self.out(value)
+        try:
+            value = self.environment if not value else self.environment[value]
+            if isinstance(value, (DottedDict, dict)):
+                if hasattr(value, 'to_python'):
+                    value = value.to_python()
+                self.out.json(value)
+            else:
+                self.out(value)
+        except KeyError:
+            self.out('Variable no soportada')
 
     # OJO!
 

@@ -21,19 +21,16 @@ ARG_IMAGE = '<IMAGE>'
 
 class CommandCompleter(Completer):
     def __init__(self):
-        # Mapeo de los comandos
         self.commands = {
             # general
             'help': None,
             'version': None,
             'exit': None,
-
             # despliegue
             'deploy': [OPT_HELP, OPT_YES, OPT_UPDATE, ARG_SERVICE],
             'make': [OPT_HELP, OPT_YES, OPT_FORCE, ARG_IMAGE],
             'prune': [OPT_HELP, OPT_YES],
             'select': [OPT_HELP, DEVELOPMENT, QUALITY],
-
             # Contenedores
             'config': [OPT_HELP],
             'down': [OPT_HELP, OPT_YES],
@@ -46,8 +43,8 @@ class CommandCompleter(Completer):
             'start': [OPT_HELP, OPT_YES, ARG_SERVICE],
             'stop': [OPT_HELP, OPT_YES, ARG_SERVICE],
             'up': [OPT_HELP, OPT_YES, ARG_SERVICE],
-
-            # hidden
+        }
+        self.hidden_commands = {
             '.save': [OPT_HELP, OPT_YES],
             '.set': [OPT_HELP, OPT_YES],
             '.show': [OPT_HELP, OPT_YES],
@@ -74,6 +71,7 @@ class CommandCompleter(Completer):
             try:
                 cmd = shlex.split(line)[0]
                 value = self.commands.get(cmd, None)
+                value = self.hidden_commands.get(cmd, value)
             except Exception:
                 cmd = None
                 value = None
