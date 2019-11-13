@@ -236,25 +236,29 @@ Las dependencias se encuentran definidas en el archivo `Pipfile`, para la gesti�
 
 ## Estructura del proyecto:
 
-### __init__.py
+### /aysa_console
 
-...
+Código fuente del proyecto, el mismo representa un `package` de python.
 
-### _common.py
+### /aysa_console/__init__.py
 
-...
+Es el responsable de inicializar la consola interactiva, en el mismo se cargan los datos del environment y la configuración de los comandos.
 
-### _docker.py
+### /aysa_console/\_docker.py
 
-...
+`Api` de conexión para la `registry` de desarrollo. Los objetos `Api`, `Image` y `Manifest` permiten interactuar con las imágenes:
 
-### commands.py
+* `Api` establece la conexión contra la `registry` y habilita los métodos necesarios para interactuar con el catálogo, tags y manifiestos.
+* `Image` descompone un string con la información la imagen y retorna la partes de la misma.
+* `Manifest` permite interactuar con el manifiesto mediante una api definida.
 
-...
+### /aysa_console/commands.py
 
-### completers.py
+El objeto `Commands` establece los comando permitidos dentro de la consola interactiva.
 
-...
+### /aysa_console/completer.py
+
+Define las opciones para el autocompletado de los comandos.
 
 ## Ejecución remota
 
