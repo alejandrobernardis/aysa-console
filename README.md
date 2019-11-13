@@ -242,7 +242,7 @@ Código fuente del proyecto, el mismo representa un `package` de python.
 
 ### /aysa_console/__init__.py
 
-Es el responsable de inicializar la consola interactiva, en el mismo se cargan los datos del environment y la configuración de los comandos.
+Es el responsable de inicializar la consola interactiva, en el mismo se cargan los datos del entorno y la configuración de los comandos.
 
 ### /aysa_console/\_docker.py
 
@@ -254,11 +254,11 @@ Es el responsable de inicializar la consola interactiva, en el mismo se cargan l
 
 ### /aysa_console/commands.py
 
-El objeto `Commands` establece los comando permitidos dentro de la consola interactiva.
+El objeto `Commands` establece los comandos permitidos dentro de la consola interactiva. Aquí se respalada la lógica detrás de cada comando, lo métodos compartido se definen en el objeto `BaseCommand`.
 
 ### /aysa_console/completer.py
 
-Define las opciones para el autocompletado de los comandos.
+Define las opciones para el `autocompletado` de los comandos.
 
 ## Ejecución remota
 
