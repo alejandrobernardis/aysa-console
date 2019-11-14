@@ -1,5 +1,19 @@
 # Notes
 
+## Screens
+
+![screen](/assets/01.help.PNG)
+
+![screen](/assets/02.autocomplete.PNG)
+
+![screen](/assets/03.comando-help.PNG)
+
+![screen](/assets/04.prune-confirm.PNG)
+
+![screen](/assets/05.prune.PNG)
+
+![screen](/assets/07.deploy.PNG)
+
 ## Help
 
 ```bash
