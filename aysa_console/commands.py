@@ -126,14 +126,14 @@ class BaseCommand:
                                                '%(message)s')
             file_handler = logging.FileHandler(debug_output, 'w')
             file_handler.setFormatter(file_formatter)
-            file_handler.setLevel(logging.DEBUG)
+            file_handler.setLevel(level)
             log.addHandler(file_handler)
-            level = logging.ERROR
-        console_formatter = logging.Formatter('%(message)s')
-        console_handler = logging.StreamHandler(sys.stderr)
-        console_handler.setFormatter(console_formatter)
-        console_handler.setLevel(level)
-        log.addHandler(console_handler)
+        else:
+            console_formatter = logging.Formatter('%(message)s')
+            console_handler = logging.StreamHandler(sys.stderr)
+            console_handler.setFormatter(console_formatter)
+            console_handler.setLevel(level)
+            log.addHandler(console_handler)
         log.setLevel(logging.DEBUG)
 
     def get_cnx(self, endpoint):
