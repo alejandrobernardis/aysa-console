@@ -167,3 +167,44 @@ with self.cwd:
     self.run('docker-compose up -d')
 ...
 ```
+
+## Configuración de la consola
+
+```bash
+AySA Command Line Interface
+
+usage:
+    aysax [-D|-V][options] [development|quality]
+
+Argumentos Opcionales:
+    -h, --help                              Muestra la `ayuda` del programa.
+    -v, --version                           Muestra la `versión` del programa.
+    -D, --debug                             Activa el modo `debug`.
+    -V, --verbose                           Activa el modo `verbose`.
+    -O filename, --debug-output=filename    Archivo de salida para el modo `debug`.
+    -E filename, --env=filename             Archivo de configuración del entorno (`.toml`),
+                                            el mismo será buscado en la siguiente ruta
+                                            de no ser definido: `~/.aysa/config.toml`.
+```
+
+### Definición de los Entornos
+
+```bash
+> aysax -E ./config.toml
+```
+
+### Debug Output
+
+```bash
+# debug
+> aysax -D -O ./logs.log
+
+# verbose (info)
+> aysax -V -O ./logs.log
+```
+
+### Selección del Entorno
+
+```bash
+> aysax quality
+```

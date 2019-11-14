@@ -5,16 +5,17 @@
 AySA Command Line Interface
 
 usage:
-    aysax [options] [development|quality]
+    aysax [options] [-D|-V] [development|quality]
 
 Argumentos Opcionales:
-    -h, --help                     Muestra la `ayuda` del programa.
-    -v, --version                  Muestra la `versión` del programa.
-    -D, --debug                    Activa el modo `debug`.
-    -V, --verbose                  Activa el modo `verbose`.
-    -E filename, --env=filename    Archivo de configuración del entorno (`.toml`),
-                                   el mismo será buscado en la siguiente ruta
-                                   de no ser definido: `~/.aysa/config.toml`.
+    -h, --help                              Muestra la `ayuda` del programa.
+    -v, --version                           Muestra la `versión` del programa.
+    -D, --debug                             Activa el modo `debug`.
+    -V, --verbose                           Activa el modo `verbose`.
+    -O filename, --debug-output=filename    Archivo de salida para el modo `debug`.
+    -E filename, --env=filename             Archivo de configuración del entorno (`.toml`),
+                                            el mismo será buscado en la siguiente ruta
+                                            de no ser definido: `~/.aysa/config.toml`.
 """
 import sys
 
