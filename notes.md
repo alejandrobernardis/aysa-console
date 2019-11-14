@@ -229,25 +229,25 @@ La configuración del entorno seleccionado se obtiene mediante la propiedad `env
 
 ```python
 print(self.env)
-...
-{
-  "force_tag": "",
-  "host": "scosta01.aysa.ad",
-  "port": 22,
-  "private_key": "~/.aysa/0x00_rsa.ppk",
-  "remote_path": "/data/deploy/dashbaord",
-  "source_tag": "dev",
-  "target_tag": "rc",
-  "username": "0x00"
-}
+# ...
+# {
+#   "force_tag": "",
+#   "host": "scosta01.aysa.ad",
+#   "port": 22,
+#   "private_key": "~/.aysa/0x00_rsa.ppk",
+#   "remote_path": "/data/deploy/dashbaord",
+#   "source_tag": "dev",
+#   "target_tag": "rc",
+#   "username": "0x00"
+# }
 ```
 
 y el nombre del entorno se obtiene mediante la propiedad `endpoint` (solo lectura).
 
 ```python
 print(self.endpoint)
-...
-development
+# ...
+# development
 ```
 
 ## Impresión en pantalla
