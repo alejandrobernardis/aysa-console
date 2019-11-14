@@ -49,11 +49,15 @@ def main():
         from pathlib import Path
         from docopt import docopt, DocoptExit
 
+        # obtenemos la configuración de la consola interactiva
         opt = docopt(__doc__, version=__version__)
+
+        # cargamos la configuración de los entornos
         env = load_env(opt.pop('--env', None))
 
         print('starting...', end='\r')
 
+        # creamos una sesión del prompt
         session = PromptSession(
             completer=CommandCompleter(),
             history=FileHistory(str(Path('~/.aysax_history').expanduser())),
@@ -61,13 +65,22 @@ def main():
             key_bindings=KeyBindings()
         )
 
+        # establecemos el entorno por default
         default = QUALITY if opt.get(QUALITY, False) else DEVELOPMENT
+
+        # creamos una nueva instancia de los comandos
         commands = Commands(session, env, default, opt)
 
     except DocoptExit:
         sys.exit(__doc__)
 
     except FileNotFoundError:
+        """
+        En caso de que el archivo de configuración no esxita, se procedera
+        a crear unao nuevo.
+
+        Ver: https://github.com/toml-lang/toml
+        """
         print('creating configuration file...', end='\r')
 
         import os
@@ -89,6 +102,7 @@ def main():
         sys.exit(str(e))
 
     else:
+        # Si todo sale bien iniciamos el loop infinito
         while 1:
             try:
                 commands.prompt()

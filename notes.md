@@ -195,6 +195,26 @@ Es el responsable de inicializar la consola interactiva, en el mismo se cargan l
 * `Image` descompone un string con la información la imagen y retorna la partes de la misma.
 * `Manifest` permite interactuar con el manifiesto mediante una api definida.
 
+#### Formato del string para el objeto `Image`
+
+```python
+"""
+{url:port}/{namespace}/{repository}:{tag}
+
+Ex: 127.0.0.1:5000/dash/web:dev
+    127.0.0.1/dash/ad:latest
+    localhost.local:5000/dash/rp:rc
+"""
+i = Image('localhost.local:5000/dash/rp:rc')
+print(i.registry)
+# ...
+# localhost.local:5000
+i = get_parts('localhost.local:5000/dash/rp:rc')
+print(i)
+# ...
+# {'registry': 'localhost.local:5000/', 'repository': 'dash/rp', 'namespace': 'dash', 'image': 'rp', 'tag': 'rc'}
+```
+
 ### /aysa_console/commands.py
 
 El objeto `Commands` establece los comandos permitidos dentro de la consola interactiva. Aquí se respalada la lógica detrás de cada comando, lo métodos compartido se definen en el objeto `BaseCommand`.

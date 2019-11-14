@@ -27,6 +27,7 @@ class DotDict(dict):
         return value
 
 
+# TODO: utilizar el TOMLDocument para esto.
 class EnvFile:
     def __init__(self, filename=None):
         self.__filename = None
