@@ -14,7 +14,7 @@
 
 ![screen](/assets/07.deploy.PNG)
 
-## Configuración de la consola
+## Configuración de la Consola
 
 ```bash
 AySA Command Line Interface
