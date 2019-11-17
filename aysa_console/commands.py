@@ -60,7 +60,8 @@ class BaseCommand:
     def session_style(self):
         if self.__session_style is None:
             self.__session_style = Style.from_dict({
-                '': '#ffffff', 'env': '#00ff00 bold'
+                '': '#ffffff',
+                'env': '#00ff00 bold'
             })
         return self.__session_style
 
@@ -486,10 +487,7 @@ class Commands(BaseCommand):
         las imágenes y volúmenes aosicados.
 
         Usage:
-            prune [options]
-
-        Opciones:
-            -y, --yes    Responde "SI" a todas las preguntas.
+            prune
         """
         message = 'Se procederá a "PURGAR" el entorno de "{0}", el ' \
                   'siguiente proceso es "IRRÉVERSIBLE".\n\n' \
