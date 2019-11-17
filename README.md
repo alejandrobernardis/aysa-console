@@ -29,7 +29,11 @@ Se requiere la versión de `python` **>=3.6**, en adelante.
 ### Sin entorno virtual
 
 ```bash
+# Instalar
 > pip install https://github.com/alejandrobernardis/aysa-console/archive/master.zip
+
+# Actualizar
+> pip install https://github.com/alejandrobernardis/aysa-console/archive/master.zip --upgrade
 ```
 
 ### Desde el código fuente
