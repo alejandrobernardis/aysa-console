@@ -78,6 +78,7 @@ class CommandCompleter(Completer):
                 cmd = None
                 value = None
             if value is not None:
+                value = value.copy()
                 variables = getattr(self, '_variables', None)
                 if cmd in ('.set', '.save', '.show') and variables:
                     if line_count == 1:
