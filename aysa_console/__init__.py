@@ -19,6 +19,7 @@ Argumentos Opcionales:
 """
 import sys
 
+
 # version
 SEGMENT = 'pyChu'
 VERSION = (2, 0, 0, SEGMENT, 0)
