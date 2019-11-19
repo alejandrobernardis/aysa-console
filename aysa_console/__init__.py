@@ -37,7 +37,8 @@ __copyright__ = 'Copyright 2019-% {}'.format(__author__)
 
 # dispatcher
 def main():
-    from docopt import docopt, DocoptExit
+    from pathlib import Path
+    from docopt import DocoptExit
 
     try:
         from prompt_toolkit import PromptSession
@@ -48,7 +49,7 @@ def main():
         from aysa_console.commands import Commands
         from aysa_console.completer import DEVELOPMENT, QUALITY, \
             CommandCompleter
-        from pathlib import Path
+        from docopt import docopt
 
         # obtenemos la configuración de la consola interactiva
         opt = docopt(__doc__, version=__version__)
