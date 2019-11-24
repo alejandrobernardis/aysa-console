@@ -103,9 +103,11 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+
+
 .idea/
-_ignore*
-_proto/
 .DS_*
-*.sublime*
-!aysa.spec
+.Thum*
+
+
