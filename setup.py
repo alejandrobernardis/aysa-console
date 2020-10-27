@@ -36,7 +36,7 @@ setup(
         'certifi==2019.9.11',
         'cffi==1.13.2',
         'chardet==3.0.4',
-        'cryptography==2.8',
+        'cryptography==3.2',
         'docopt==0.6.2',
         'dotted==0.1.8',
         'fabric==2.5.0',
