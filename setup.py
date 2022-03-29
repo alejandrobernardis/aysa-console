@@ -42,7 +42,7 @@ setup(
         'fabric==2.5.0',
         'idna==2.8',
         'invoke==1.3.0',
-        'paramiko==2.6.0',
+        'paramiko==2.10.1',
         'prompt-toolkit==2.0.10',
         'pycparser==2.19',
         'pynacl==1.3.0',
