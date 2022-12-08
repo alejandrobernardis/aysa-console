@@ -33,7 +33,7 @@ setup(
 
     install_requires=[
         'bcrypt==3.1.7',
-        'certifi==2019.9.11',
+        'certifi==2022.12.7',
         'cffi==1.13.2',
         'chardet==3.0.4',
         'cryptography==2.8',
